@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "DoneMobile",
+    "slug": "donemobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.donemobile.app"
+    },
+    "android": {
+      "package": "com.donemobile.app"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "scheme": "donemobile",
+    "experiments": {
+      "tsconfigPaths": true,
+      "typedRoutes": true,
+      "newArchEnabled": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "your-project-id"
+      }
+    }
+  }
+} 
