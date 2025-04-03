@@ -9,12 +9,12 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator = () => {
   // TODO: Implement authentication state management
-  const isAuthenticated = false; // This should come from your auth state management
+  const isAuthenticated = true; // Temporarily set to true for testing
 
   return (
     <NavigationContainer>
       <Stack.Navigator 
-        initialRouteName="Login"
+        initialRouteName={isAuthenticated ? "Main" : "Login"}
         screenOptions={{ 
           headerShown: false,
           animation: 'slide_from_right'
