@@ -145,18 +145,6 @@ const SettingsScreen = ({ navigation }: Props) => {
                   />
                   <Text style={[styles.themeText, theme === 'dark' && styles.themeTextActive]}>Koyu</Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[styles.themeOption, theme === 'system' && styles.themeOptionActive]}
-                  onPress={() => handleThemeChange('system')}
-                >
-                  <Ionicons 
-                    name="settings-outline" 
-                    size={20} 
-                    color={theme === 'system' ? '#fff' : '#666'} 
-                  />
-                  <Text style={[styles.themeText, theme === 'system' && styles.themeTextActive]}>Sistem</Text>
-                </TouchableOpacity>
               </View>
             </View>
             

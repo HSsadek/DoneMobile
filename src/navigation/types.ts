@@ -9,6 +9,8 @@ export type DrawerStackParamList = {
   Profile: undefined;
   Help: undefined;
   Logout: undefined;
+  Login: undefined;
+  PrivacyPolicy: undefined;
 };
 
 export type RootStackParamList = {
