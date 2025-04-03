@@ -9,7 +9,10 @@ import { Divider } from 'react-native-paper';
 type Props = DrawerScreenProps<DrawerStackParamList, 'Settings'>;
 
 // Tema tipi
-type ThemeType = 'light' | 'dark' | 'system';
+type ThemeType = 'light' | 'dark';
+
+// Dil tipi
+type LanguageType = 'tr' | 'en';
 
 // Bildirim ayarları tipi
 type NotificationSettings = {
@@ -23,6 +26,12 @@ const SettingsScreen = ({ navigation }: Props) => {
   // Tema ayarı
   const [theme, setTheme] = useState<ThemeType>('light');
   
+  // Dil ayarı
+  const [language, setLanguage] = useState<LanguageType>('tr');
+  
+  // Dil seçeneklerinin görünürlüğü
+  const [showLanguageOptions, setShowLanguageOptions] = useState(false);
+  
   // Bildirim ayarları
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
     projectUpdates: true,
@@ -35,6 +44,13 @@ const SettingsScreen = ({ navigation }: Props) => {
   const handleThemeChange = (newTheme: ThemeType) => {
     setTheme(newTheme);
     // Burada tema değişikliğini uygulamaya yansıtacak kod eklenecek
+  };
+
+  // Dil değiştirme fonksiyonu
+  const handleLanguageChange = (newLanguage: LanguageType) => {
+    setLanguage(newLanguage);
+    setShowLanguageOptions(false);
+    // Burada dil değişikliğini uygulamaya yansıtacak kod eklenecek
   };
 
   // Bildirim ayarını değiştirme fonksiyonu
@@ -120,7 +136,12 @@ const SettingsScreen = ({ navigation }: Props) => {
             <Text style={styles.sectionTitle}>Genel</Text>
             
             <View style={styles.settingItem}>
-              <Text style={styles.settingText}>Tema</Text>
+              <View style={styles.settingContent}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="color-palette-outline" size={20} color="#007AFF" />
+                </View>
+                <Text style={styles.settingText}>Tema</Text>
+              </View>
               <View style={styles.themeSelector}>
                 <TouchableOpacity 
                   style={[styles.themeOption, theme === 'light' && styles.themeOptionActive]}
@@ -148,13 +169,55 @@ const SettingsScreen = ({ navigation }: Props) => {
               </View>
             </View>
             
-            <TouchableOpacity style={styles.settingItem}>
-              <Text style={styles.settingText}>Dil</Text>
-              <View style={styles.settingValue}>
-                <Text style={styles.settingValueText}>Türkçe</Text>
-                <Ionicons name="chevron-forward" size={24} color="#666" />
+            <View style={styles.settingItem}>
+              <View style={styles.settingContent}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="language-outline" size={20} color="#007AFF" />
+                </View>
+                <Text style={styles.settingText}>Dil</Text>
               </View>
-            </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.languageSelector}
+                onPress={() => setShowLanguageOptions(!showLanguageOptions)}
+              >
+                <Text style={styles.languageText}>
+                  {language === 'tr' ? 'Türkçe' : 'English'}
+                </Text>
+                <Ionicons 
+                  name={showLanguageOptions ? "chevron-up" : "chevron-down"} 
+                  size={24} 
+                  color="#666" 
+                />
+              </TouchableOpacity>
+            </View>
+            
+            {showLanguageOptions && (
+              <View style={styles.languageOptionsContainer}>
+                <TouchableOpacity 
+                  style={[styles.languageOption, language === 'tr' && styles.languageOptionActive]}
+                  onPress={() => handleLanguageChange('tr')}
+                >
+                  <Text style={[styles.languageOptionText, language === 'tr' && styles.languageOptionTextActive]}>
+                    Türkçe
+                  </Text>
+                  {language === 'tr' && (
+                    <Ionicons name="checkmark" size={20} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.languageOption, language === 'en' && styles.languageOptionActive]}
+                  onPress={() => handleLanguageChange('en')}
+                >
+                  <Text style={[styles.languageOptionText, language === 'en' && styles.languageOptionTextActive]}>
+                    English
+                  </Text>
+                  {language === 'en' && (
+                    <Ionicons name="checkmark" size={20} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
 
           <Divider style={styles.divider} />
@@ -163,7 +226,12 @@ const SettingsScreen = ({ navigation }: Props) => {
             <Text style={styles.sectionTitle}>Bildirimler</Text>
             
             <View style={styles.settingItem}>
-              <Text style={styles.settingText}>Proje Güncellemeleri</Text>
+              <View style={styles.settingContent}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="notifications-outline" size={20} color="#007AFF" />
+                </View>
+                <Text style={styles.settingText}>Proje Güncellemeleri</Text>
+              </View>
               <Switch
                 value={notificationSettings.projectUpdates}
                 onValueChange={() => toggleNotificationSetting('projectUpdates')}
@@ -173,7 +241,12 @@ const SettingsScreen = ({ navigation }: Props) => {
             </View>
             
             <View style={styles.settingItem}>
-              <Text style={styles.settingText}>Görev Atamaları</Text>
+              <View style={styles.settingContent}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="person-add-outline" size={20} color="#007AFF" />
+                </View>
+                <Text style={styles.settingText}>Görev Atamaları</Text>
+              </View>
               <Switch
                 value={notificationSettings.taskAssignments}
                 onValueChange={() => toggleNotificationSetting('taskAssignments')}
@@ -183,7 +256,12 @@ const SettingsScreen = ({ navigation }: Props) => {
             </View>
             
             <View style={styles.settingItem}>
-              <Text style={styles.settingText}>Son Tarih Hatırlatıcıları</Text>
+              <View style={styles.settingContent}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="calendar-outline" size={20} color="#007AFF" />
+                </View>
+                <Text style={styles.settingText}>Son Tarih Hatırlatıcıları</Text>
+              </View>
               <Switch
                 value={notificationSettings.dueDateReminders}
                 onValueChange={() => toggleNotificationSetting('dueDateReminders')}
@@ -193,7 +271,12 @@ const SettingsScreen = ({ navigation }: Props) => {
             </View>
             
             <View style={styles.settingItem}>
-              <Text style={styles.settingText}>E-posta Bildirimleri</Text>
+              <View style={styles.settingContent}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="mail-outline" size={20} color="#007AFF" />
+                </View>
+                <Text style={styles.settingText}>E-posta Bildirimleri</Text>
+              </View>
               <Switch
                 value={notificationSettings.emailNotifications}
                 onValueChange={() => toggleNotificationSetting('emailNotifications')}
@@ -209,12 +292,28 @@ const SettingsScreen = ({ navigation }: Props) => {
             <Text style={styles.sectionTitle}>Hesap</Text>
             
             <TouchableOpacity style={styles.settingItem} onPress={handleUpdateProfile}>
-              <Text style={styles.settingText}>Profil Bilgileri</Text>
+              <View style={styles.settingContent}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="person-outline" size={20} color="#007AFF" />
+                </View>
+                <Text style={styles.settingText}>Profil Bilgileri</Text>
+              </View>
               <Ionicons name="chevron-forward" size={24} color="#666" />
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.settingItem} onPress={handleChangePassword}>
-              <Text style={styles.settingText}>Şifre Değiştir</Text>
+            <TouchableOpacity 
+              style={styles.settingItem} 
+              onPress={handleChangePassword}
+            >
+              <View style={styles.settingContent}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="lock-closed-outline" size={20} color="#007AFF" />
+                </View>
+                <View style={styles.settingTextContainer}>
+                  <Text style={styles.settingText}>Şifre Değiştir</Text>
+                  <Text style={styles.settingSubtext}>Son değişiklik: 3 ay önce</Text>
+                </View>
+              </View>
               <Ionicons name="chevron-forward" size={24} color="#666" />
             </TouchableOpacity>
           </View>
@@ -225,19 +324,34 @@ const SettingsScreen = ({ navigation }: Props) => {
             <Text style={styles.sectionTitle}>Uygulama</Text>
             
             <TouchableOpacity style={styles.settingItem} onPress={handleAbout}>
-              <Text style={styles.settingText}>Hakkında</Text>
+              <View style={styles.settingContent}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="information-circle-outline" size={20} color="#007AFF" />
+                </View>
+                <Text style={styles.settingText}>Hakkında</Text>
+              </View>
               <Ionicons name="chevron-forward" size={24} color="#666" />
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.settingItem} onPress={handlePrivacyPolicy}>
-              <Text style={styles.settingText}>Gizlilik Politikası</Text>
+              <View style={styles.settingContent}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="shield-checkmark-outline" size={20} color="#007AFF" />
+                </View>
+                <Text style={styles.settingText}>Gizlilik Politikası</Text>
+              </View>
               <Ionicons name="chevron-forward" size={24} color="#666" />
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.settingItem}>
-              <Text style={styles.settingText}>Uygulama Sürümü</Text>
+            <View style={styles.settingItem}>
+              <View style={styles.settingContent}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="code-slash-outline" size={20} color="#007AFF" />
+                </View>
+                <Text style={styles.settingText}>Uygulama Sürümü</Text>
+              </View>
               <Text style={styles.settingValueText}>1.0.0</Text>
-            </TouchableOpacity>
+            </View>
           </View>
 
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -299,6 +413,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
+  settingContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  settingIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
   settingText: {
     fontSize: 16,
     color: '#333',
@@ -358,6 +486,52 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FF3B30',
     marginLeft: 8,
+  },
+  languageSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  languageText: {
+    fontSize: 16,
+    color: '#666',
+    marginRight: 8,
+  },
+  languageOptionsContainer: {
+    marginTop: 8,
+    marginBottom: 16,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  languageOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#f8f8f8',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  languageOptionActive: {
+    backgroundColor: '#f0f8ff',
+  },
+  languageOptionText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  languageOptionTextActive: {
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  settingTextContainer: {
+    flex: 1,
+  },
+  settingSubtext: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2,
   },
 });
 
