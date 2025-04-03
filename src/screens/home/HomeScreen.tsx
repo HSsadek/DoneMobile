@@ -4,10 +4,11 @@ import { StatusBar } from 'expo-status-bar';
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerStackParamList } from '../../navigation/types';
+import { Button } from 'react-native-paper';
 
 type Props = DrawerScreenProps<DrawerStackParamList, 'Home'>;
 
-type TaskStatus = 'yapilacak' | 'devam' | 'test' | 'tamamlanan';
+export type TaskStatus = 'yapilacak' | 'devam' | 'test' | 'tamamlanan';
 
 const { width } = Dimensions.get('window');
 
@@ -110,6 +111,7 @@ export const sampleProjects = [
 
 const HomeScreen = ({ navigation }: Props) => {
   const [activeStatus, setActiveStatus] = useState<TaskStatus>('yapilacak');
+  const [projects, setProjects] = useState(sampleProjects);
 
   const statusItems: { id: TaskStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
     { id: 'yapilacak', label: 'Yapılacak', icon: 'time-outline' },
@@ -133,7 +135,101 @@ const HomeScreen = ({ navigation }: Props) => {
     }
   };
 
-  const filteredProjects = sampleProjects.filter(project => project.status === activeStatus);
+  // Projeyi bir sonraki aşamaya taşıma fonksiyonu
+  const moveToNextStage = (projectId: string) => {
+    const projectIndex = projects.findIndex(p => p.id === projectId);
+    if (projectIndex === -1) return;
+
+    const project = projects[projectIndex];
+    let nextStatus: TaskStatus;
+
+    // Mevcut duruma göre bir sonraki durumu belirle
+    switch (project.status) {
+      case 'yapilacak':
+        nextStatus = 'devam';
+        break;
+      case 'devam':
+        nextStatus = 'test';
+        break;
+      case 'test':
+        nextStatus = 'tamamlanan';
+        break;
+      default:
+        return; // Tamamlanan projeler için bir sonraki aşama yok
+    }
+
+    // Projeyi güncelle
+    const updatedProjects = [...projects];
+    updatedProjects[projectIndex] = {
+      ...project,
+      status: nextStatus,
+    };
+
+    setProjects(updatedProjects);
+  };
+
+  // Projeyi bir önceki aşamaya taşıma fonksiyonu
+  const moveToPreviousStage = (projectId: string) => {
+    const projectIndex = projects.findIndex(p => p.id === projectId);
+    if (projectIndex === -1) return;
+
+    const project = projects[projectIndex];
+    let previousStatus: TaskStatus;
+
+    // Mevcut duruma göre bir önceki durumu belirle
+    switch (project.status) {
+      case 'tamamlanan':
+        previousStatus = 'test';
+        break;
+      case 'test':
+        previousStatus = 'devam';
+        break;
+      case 'devam':
+        previousStatus = 'yapilacak';
+        break;
+      default:
+        return; // Yapılacak projeler için bir önceki aşama yok
+    }
+
+    // Projeyi güncelle
+    const updatedProjects = [...projects];
+    updatedProjects[projectIndex] = {
+      ...project,
+      status: previousStatus,
+    };
+
+    setProjects(updatedProjects);
+  };
+
+  // Bir sonraki aşama butonunun metnini belirle
+  const getNextStageButtonText = (status: TaskStatus) => {
+    switch (status) {
+      case 'yapilacak':
+        return 'Devam Et';
+      case 'devam':
+        return 'Test Et';
+      case 'test':
+        return 'Tamamla';
+      default:
+        return '';
+    }
+  };
+
+  // Bir önceki aşama butonunun metnini belirle
+  const getPreviousStageButtonText = (status: TaskStatus) => {
+    switch (status) {
+      case 'tamamlanan':
+        return 'Test Et';
+      case 'test':
+        return 'Devam Et';
+      case 'devam':
+        return 'Yapılacak';
+      default:
+        return '';
+    }
+  };
+
+  const filteredProjects = projects.filter(project => project.status === activeStatus);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -194,37 +290,67 @@ const HomeScreen = ({ navigation }: Props) => {
           
           {filteredProjects.length > 0 ? (
             filteredProjects.map((project) => (
-              <TouchableOpacity 
-                key={project.id} 
-                style={styles.projectCard}
-                onPress={() => navigation.navigate('ProjectDetail', { projectId: project.id })}
-              >
-                <View style={styles.projectHeader}>
-                  <Text style={styles.projectTitle}>{project.title}</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(project.status) }]}>
-                    <Text style={styles.statusBadgeText}>
-                      {statusItems.find(item => item.id === project.status)?.label}
-                    </Text>
-                  </View>
-                </View>
-                <Text style={styles.projectDescription}>{project.description}</Text>
-                <View style={styles.projectFooter}>
-                  <View style={styles.progressContainer}>
-                    <View style={[styles.progressBar, { width: `${project.progress}%` }]} />
-                    <Text style={styles.progressText}>{project.progress}%</Text>
-                  </View>
-                  <View style={styles.projectStats}>
-                    <View style={styles.statItem}>
-                      <Ionicons name="list-outline" size={16} color="#666" />
-                      <Text style={styles.statText}>{project.tasks} Görev</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                      <Ionicons name="people-outline" size={16} color="#666" />
-                      <Text style={styles.statText}>{project.members} Üye</Text>
+              <View key={project.id} style={styles.projectCard}>
+                <TouchableOpacity 
+                  onPress={() => navigation.navigate('ProjectDetail', { projectId: project.id })}
+                >
+                  <View style={styles.projectHeader}>
+                    <Text style={styles.projectTitle}>{project.title}</Text>
+                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(project.status) }]}>
+                      <Text style={styles.statusBadgeText}>
+                        {statusItems.find(item => item.id === project.status)?.label}
+                      </Text>
                     </View>
                   </View>
+                  <Text style={styles.projectDescription}>{project.description}</Text>
+                  <View style={styles.projectFooter}>
+                    <View style={styles.progressContainer}>
+                      <View style={[styles.progressBar, { width: `${project.progress}%` }]} />
+                      <Text style={styles.progressText}>{project.progress}%</Text>
+                    </View>
+                    <View style={styles.projectStats}>
+                      <View style={styles.statItem}>
+                        <Ionicons name="list-outline" size={16} color="#666" />
+                        <Text style={styles.statText}>{project.tasks} Görev</Text>
+                      </View>
+                      <View style={styles.statItem}>
+                        <Ionicons name="people-outline" size={16} color="#666" />
+                        <Text style={styles.statText}>{project.members} Üye</Text>
+                      </View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+                
+                <View style={styles.navigationButtonsContainer}>
+                  {project.status !== 'yapilacak' && (
+                    <Button 
+                      mode="outlined" 
+                      onPress={() => moveToPreviousStage(project.id)}
+                      style={styles.navigationButton}
+                      contentStyle={styles.navigationButtonContent}
+                      icon={({ size, color }) => (
+                        <Ionicons name="arrow-back" size={size} color={color} />
+                      )}
+                    >
+                      {getPreviousStageButtonText(project.status)}
+                    </Button>
+                  )}
+                  
+                  {project.status !== 'tamamlanan' && (
+                    <Button 
+                      mode="contained" 
+                      onPress={() => moveToNextStage(project.id)}
+                      style={[styles.navigationButton, styles.nextButton]}
+                      contentStyle={styles.navigationButtonContent}
+                      icon={({ size, color }) => (
+                        <Ionicons name="arrow-forward" size={size} color={color} />
+                      )}
+                    >
+                      {getNextStageButtonText(project.status)}
+                    </Button>
+                  )}
                 </View>
-              </TouchableOpacity>
+              </View>
             ))
           ) : (
             <View style={styles.emptyState}>
@@ -406,6 +532,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#999',
     marginTop: 12,
+  },
+  navigationButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  navigationButton: {
+    flex: 1,
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  nextButton: {
+    backgroundColor: '#007AFF',
+  },
+  navigationButtonContent: {
+    paddingVertical: 6,
   },
 });
 

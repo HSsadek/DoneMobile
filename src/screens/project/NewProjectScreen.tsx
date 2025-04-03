@@ -1,11 +1,24 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Platform, SafeAreaView, TouchableOpacity, Image } from 'react-native';
+import { View, StyleSheet, ScrollView, Platform, SafeAreaView, TouchableOpacity, Image, TextInput as RNTextInput } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerStackParamList } from '../../navigation/types';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Text, Button, Portal, Modal, TextInput, Surface, Divider, useTheme, Avatar, Chip, List, IconButton } from 'react-native-paper';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
+import { theme } from '../../theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../navigation/types';
+import { Project } from '../../types/project';
+import { generateId } from '../../utils/idGenerator';
+import { formatDate } from '../../utils/dateUtils';
+import { formatName } from '../../utils/nameUtils';
+import { sampleProjects } from '../home/HomeScreen';
+import type { TaskStatus } from '../home/HomeScreen';
 
 type Props = DrawerScreenProps<DrawerStackParamList, 'NewProject'>;
 
@@ -37,6 +50,85 @@ const SAMPLE_TASKS: Task[] = [
   { id: '3', title: 'Backend API Geliştirme', assignee: null, dueDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000) },
 ];
 
+// Üye tipi tanımı
+type TeamMember = {
+  id: string;
+  name: string;
+  role: string;
+  avatar?: string;
+};
+
+// Üye kartı bileşeni
+const MemberCard = ({ member, tasks, onRemove }: { member: TeamMember; tasks: Task[]; onRemove: (id: string) => void }) => {
+  // İsmin ilk iki harfini al
+  const getInitials = (name: string) => {
+    return name.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase();
+  };
+
+  // Avatar rengi oluştur
+  const getAvatarColor = (name: string) => {
+    const colors = ['#6366f1', '#3b82f6', '#ec4899', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  return (
+    <Surface style={styles.memberCard} elevation={1}>
+      <View style={styles.memberHeader}>
+        {member.avatar ? (
+          <Avatar.Image 
+            size={50} 
+            source={{ uri: member.avatar }} 
+            style={styles.memberAvatar}
+          />
+        ) : (
+          <Avatar.Text 
+            size={50} 
+            label={getInitials(member.name)} 
+            style={[styles.memberAvatar, { backgroundColor: getAvatarColor(member.name) }]}
+          />
+        )}
+        <View style={styles.memberDetails}>
+          <Text variant="titleMedium" style={styles.memberName}>{member.name}</Text>
+          <Text variant="bodySmall" style={styles.memberRole}>{member.role}</Text>
+        </View>
+        <IconButton 
+          icon="delete" 
+          size={20} 
+          onPress={() => onRemove(member.id)} 
+          style={styles.memberActionButton}
+          iconColor="#ff4444"
+        />
+      </View>
+      
+      {/* Üyenin Görevleri */}
+      <View style={styles.memberTasksContainer}>
+        <Text variant="bodyMedium" style={styles.memberTasksTitle}>Görevler</Text>
+        {tasks.filter(task => task.assignee === member.id).length > 0 ? (
+          <View style={styles.memberTasksList}>
+            {tasks.filter(task => task.assignee === member.id).map(task => (
+              <View key={task.id} style={styles.memberTaskItem}>
+                <Ionicons name="list-outline" size={16} color={theme.colors.primary} style={styles.taskIcon} />
+                <View style={styles.taskDetails}>
+                  <Text variant="bodyMedium" style={styles.memberTaskTitle}>{task.title}</Text>
+                  <Text variant="bodySmall" style={styles.memberTaskDueDate}>
+                    Bitiş: {formatDate(task.dueDate)}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.emptyText}>Henüz görev atanmamış</Text>
+        )}
+      </View>
+    </Surface>
+  );
+};
+
 const NewProjectScreen = ({ navigation }: Props) => {
   const theme = useTheme();
   const [title, setTitle] = useState('');
@@ -53,10 +145,9 @@ const NewProjectScreen = ({ navigation }: Props) => {
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [showAssignTaskModal, setShowAssignTaskModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
+  const [selectedTaskIndex, setSelectedTaskIndex] = useState<number>(0);
   const [newMemberName, setNewMemberName] = useState('');
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskDueDate, setNewTaskDueDate] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
-  const [showNewTaskDatePicker, setShowNewTaskDatePicker] = useState(false);
+  const [newMemberRole, setNewMemberRole] = useState('');
   const [newMemberTaskTitle, setNewMemberTaskTitle] = useState('');
   const [newMemberTaskStartDate, setNewMemberTaskStartDate] = useState(new Date());
   const [newMemberTaskEndDate, setNewMemberTaskEndDate] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
@@ -64,9 +155,66 @@ const NewProjectScreen = ({ navigation }: Props) => {
   const [showNewMemberTaskEndDatePicker, setShowNewMemberTaskEndDatePicker] = useState(false);
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<string | null>(null);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDueDate, setNewTaskDueDate] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+  const [showNewTaskDatePicker, setShowNewTaskDatePicker] = useState(false);
+  const [memberTasks, setMemberTasks] = useState<Array<{
+    title: string;
+    startDate: Date;
+    endDate: Date;
+  }>>([{
+    title: '',
+    startDate: new Date(),
+    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  }]);
+
+  // Optimize input handling with debounce
+  const handleNameChange = (text: string) => {
+    setNewMemberName(text);
+  };
+
+  const handleRoleChange = (text: string) => {
+    setNewMemberRole(text);
+  };
+
+  const handleTaskTitleChange = (text: string) => {
+    setNewTaskTitle(text);
+  };
+
+  const handleTaskTitleChangeForIndex = (index: number, text: string) => {
+    const newTasks = [...memberTasks];
+    newTasks[index] = { ...newTasks[index], title: text };
+    setMemberTasks(newTasks);
+  };
 
   const handleCreate = () => {
-    // TODO: Yeni proje oluşturma işlemi eklenecek
+    if (!title || !description) {
+      return;
+    }
+
+    // Yeni proje oluşturma işlemi
+    const newProject = {
+      id: (sampleProjects.length + 1).toString(),
+      title: title,
+      description: description,
+      status: 'yapilacak' as TaskStatus,
+      progress: 0,
+      tasks: tasks.length,
+      members: teamMembers.length,
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+      team: teamMembers,
+      recentTasks: tasks.map(task => ({
+        id: task.id,
+        title: task.title,
+        status: 'beklemede',
+        assignedTo: task.assignee || '',
+        progress: 0,
+      })),
+    };
+
+    // Projeyi yapılacaklar listesine ekle
+    sampleProjects.push(newProject);
     navigation.goBack();
   };
 
@@ -128,22 +276,26 @@ const NewProjectScreen = ({ navigation }: Props) => {
       
       setTeamMembers([...teamMembers, newMember]);
       
-      // Eğer görev başlığı girilmişse, yeni görev oluştur
-      if (newMemberTaskTitle) {
-        const newTask = {
-          id: (tasks.length + 1).toString(),
-          title: newMemberTaskTitle,
-          assignee: newMember.id,
-          dueDate: newMemberTaskEndDate
-        };
-        setTasks([...tasks, newTask]);
-      }
+      // Tüm görevleri ekle
+      memberTasks.forEach(task => {
+        if (task.title) {
+          const newTask = {
+            id: (tasks.length + 1).toString(),
+            title: task.title,
+            assignee: newMember.id,
+            dueDate: task.endDate
+          };
+          setTasks([...tasks, newTask]);
+        }
+      });
       
       // Form alanlarını temizle
       setNewMemberName('');
-      setNewMemberTaskTitle('');
-      setNewMemberTaskStartDate(new Date());
-      setNewMemberTaskEndDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+      setMemberTasks([{
+        title: '',
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      }]);
       setShowAddMemberModal(false);
     }
   };
@@ -171,18 +323,11 @@ const NewProjectScreen = ({ navigation }: Props) => {
 
   // Görev ekleme
   const handleAddTask = () => {
-    if (newTaskTitle) {
-      const newTask = {
-        id: (tasks.length + 1).toString(),
-        title: newTaskTitle,
-        assignee: null,
-        dueDate: newTaskDueDate
-      };
-      setTasks([...tasks, newTask]);
-      setNewTaskTitle('');
-      setNewTaskDueDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
-      setShowAddTaskModal(false);
-    }
+    setMemberTasks([...memberTasks, {
+      title: '',
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    }]);
   };
 
   // Görev atama
@@ -198,10 +343,21 @@ const NewProjectScreen = ({ navigation }: Props) => {
 
   // Görev tarihi değiştirme
   const handleNewTaskDateChange = (event: any, selectedDate?: Date) => {
-    setShowNewTaskDatePicker(false);
     if (selectedDate) {
       setNewTaskDueDate(selectedDate);
     }
+  };
+
+  const handleRemoveTask = (index: number) => {
+    const newTasks = [...memberTasks];
+    newTasks.splice(index, 1);
+    setMemberTasks(newTasks);
+  };
+
+  const handleUpdateTask = (index: number, field: 'title' | 'startDate' | 'endDate', value: string | Date) => {
+    const newTasks = [...memberTasks];
+    newTasks[index] = { ...newTasks[index], [field]: value };
+    setMemberTasks(newTasks);
   };
 
   return (
@@ -238,7 +394,6 @@ const NewProjectScreen = ({ navigation }: Props) => {
                 activeUnderlineColor={theme.colors.primary}
                 left={<TextInput.Icon icon="folder" color={theme.colors.primary} />}
                 right={title.length > 0 ? <TextInput.Icon icon="check" color={theme.colors.primary} /> : null}
-                contentStyle={styles.inputContent}
               />
             </View>
 
@@ -257,7 +412,6 @@ const NewProjectScreen = ({ navigation }: Props) => {
                 underlineColor="transparent"
                 activeUnderlineColor={theme.colors.primary}
                 left={<TextInput.Icon icon="text" color={theme.colors.primary} />}
-                contentStyle={styles.textAreaContent}
               />
               <Text style={styles.characterCount}>
                 {description.length}/500 karakter
@@ -266,36 +420,6 @@ const NewProjectScreen = ({ navigation }: Props) => {
 
             <Divider style={styles.divider} />
 
-            <View style={styles.formGroup}>
-              <Text variant="titleMedium" style={styles.label}>Tarihler</Text>
-              <View style={styles.dateContainer}>
-                <View style={styles.dateInputContainer}>
-                  <Text variant="bodyMedium" style={styles.dateLabel}>Başlangıç Tarihi</Text>
-                  <TouchableOpacity 
-                    style={styles.dateButton}
-                    onPress={() => setShowStartDatePicker(true)}
-                  >
-                    <Ionicons name="calendar-outline" size={24} color="#666" />
-                    <Text style={styles.dateText}>Başlangıç: {formatDate(startDate)}</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.dateInputContainer}>
-                  <Text variant="bodyMedium" style={styles.dateLabel}>Bitiş Tarihi</Text>
-                  <TouchableOpacity 
-                    style={styles.dateButton}
-                    onPress={() => setShowEndDatePicker(true)}
-                  >
-                    <Ionicons name="calendar-outline" size={24} color="#666" />
-                    <Text style={styles.dateText}>Bitiş: {formatDate(endDate)}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-
-            <Divider style={styles.divider} />
-
-            {/* Ekip Üyeleri Bölümü */}
             <View style={styles.formGroup}>
               <View style={styles.sectionHeader}>
                 <Text variant="titleMedium" style={styles.label}>Ekip Üyeleri</Text>
@@ -312,89 +436,16 @@ const NewProjectScreen = ({ navigation }: Props) => {
               {teamMembers.length > 0 ? (
                 <View style={styles.teamMembersContainer}>
                   {teamMembers.map(member => (
-                    <Surface key={member.id} style={styles.memberCard} elevation={1}>
-                      <View style={styles.memberInfo}>
-                        <Avatar.Image 
-                          size={40} 
-                          source={{ uri: member.avatar }} 
-                          style={styles.memberAvatar}
-                        />
-                        <View style={styles.memberDetails}>
-                          <Text variant="bodyMedium" style={styles.memberName}>{member.name}</Text>
-                          <Text variant="bodySmall" style={styles.memberRole}>{member.role}</Text>
-                        </View>
-                      </View>
-                      <IconButton 
-                        icon="delete" 
-                        size={20} 
-                        onPress={() => handleRemoveMember(member.id)} 
-                        style={styles.memberActionButton}
-                        iconColor="#ff4444"
-                      />
-                    </Surface>
+                    <MemberCard 
+                      key={member.id} 
+                      member={member} 
+                      tasks={tasks} 
+                      onRemove={handleRemoveMember} 
+                    />
                   ))}
                 </View>
               ) : (
                 <Text style={styles.emptyText}>Henüz ekip üyesi eklenmemiş</Text>
-              )}
-            </View>
-
-            <Divider style={styles.divider} />
-
-            {/* Görevler Bölümü */}
-            <View style={styles.formGroup}>
-              <View style={styles.sectionHeader}>
-                <Text variant="titleMedium" style={styles.label}>Görevler</Text>
-                <Button 
-                  mode="contained-tonal" 
-                  onPress={() => setShowAddTaskModal(true)}
-                  icon="plus"
-                  compact
-                >
-                  Ekle
-                </Button>
-              </View>
-              
-              {tasks.length > 0 ? (
-                <View style={styles.tasksContainer}>
-                  {tasks.map(task => (
-                    <Surface key={task.id} style={styles.taskCard} elevation={1}>
-                      <View style={styles.taskInfo}>
-                        <Text variant="bodyMedium" style={styles.taskTitle}>{task.title}</Text>
-                        <Text variant="bodySmall" style={styles.taskDueDate}>
-                          Bitiş: {formatDate(task.dueDate)}
-                        </Text>
-                      </View>
-                      <View style={styles.taskActions}>
-                        {task.assignee ? (
-                          <Chip 
-                            icon="account" 
-                            style={styles.assigneeChip}
-                            onPress={() => {}}
-                          >
-                            {teamMembers.find(m => m.id === task.assignee)?.name || 'Atanmış'}
-                          </Chip>
-                        ) : (
-                          <Button 
-                            mode="outlined" 
-                            onPress={() => {
-                              if (task.id) {
-                                setSelectedTask(task.id);
-                                setShowAssignTaskModal(true);
-                              }
-                            }}
-                            icon="account-plus"
-                            compact
-                          >
-                            Ata
-                          </Button>
-                        )}
-                      </View>
-                    </Surface>
-                  ))}
-                </View>
-              ) : (
-                <Text style={styles.emptyText}>Henüz görev eklenmemiş</Text>
               )}
             </View>
           </Surface>
@@ -452,61 +503,100 @@ const NewProjectScreen = ({ navigation }: Props) => {
               <View style={{ width: 40 }} />
             </View>
             
-            <View style={styles.modalBody}>
-              <View style={styles.inputGroup}>
-                <Text variant="bodySmall" style={styles.inputLabel}>İsim</Text>
-                <TextInput
-                  mode="flat"
-                  value={newMemberName}
-                  onChangeText={setNewMemberName}
-                  placeholder="Üye ismini girin"
-                  style={styles.modalInput}
-                  underlineColor="transparent"
-                  activeUnderlineColor={theme.colors.primary}
-                  left={<TextInput.Icon icon="account" color={theme.colors.primary} />}
-                />
-              </View>
-              
-              <Divider style={styles.modalDivider} />
-              
-              <View style={styles.inputGroup}>
-                <Text variant="bodySmall" style={styles.inputLabel}>Görev Başlığı</Text>
-                <TextInput
-                  mode="flat"
-                  value={newMemberTaskTitle}
-                  onChangeText={setNewMemberTaskTitle}
-                  placeholder="Görev başlığını girin (opsiyonel)"
-                  style={styles.modalInput}
-                  underlineColor="transparent"
-                  activeUnderlineColor={theme.colors.primary}
-                  left={<TextInput.Icon icon="checkbox-marked-circle" color={theme.colors.primary} />}
-                />
-              </View>
-              
-              <View style={styles.dateRow}>
-                <View style={styles.dateInputGroup}>
-                  <Text variant="bodySmall" style={styles.inputLabel}>Atama Tarihi</Text>
-                  <TouchableOpacity 
-                    style={styles.modalDateButton}
-                    onPress={() => setShowNewMemberTaskStartDatePicker(true)}
-                  >
-                    <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
-                    <Text style={styles.modalDateText}>{formatDate(newMemberTaskStartDate)}</Text>
-                  </TouchableOpacity>
+            <ScrollView 
+              style={styles.modalScrollView} 
+              showsVerticalScrollIndicator={true}
+              contentContainerStyle={styles.modalScrollContent}
+            >
+              <View style={styles.modalBody}>
+                <View style={styles.inputGroup}>
+                  <Text variant="bodySmall" style={styles.inputLabel}>İsim</Text>
+                  <TextInput
+                    mode="flat"
+                    value={newMemberName}
+                    onChangeText={setNewMemberName}
+                    placeholder="Üye ismini girin"
+                    style={styles.modalInput}
+                    underlineColor="transparent"
+                    activeUnderlineColor={theme.colors.primary}
+                    left={<TextInput.Icon icon="account" color={theme.colors.primary} />}
+                  />
                 </View>
                 
-                <View style={styles.dateInputGroup}>
-                  <Text variant="bodySmall" style={styles.inputLabel}>Teslim Tarihi</Text>
-                  <TouchableOpacity 
-                    style={styles.modalDateButton}
-                    onPress={() => setShowNewMemberTaskEndDatePicker(true)}
-                  >
-                    <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
-                    <Text style={styles.modalDateText}>{formatDate(newMemberTaskEndDate)}</Text>
-                  </TouchableOpacity>
+                <Divider style={styles.modalDivider} />
+                
+                <View style={styles.tasksSection}>
+                  <View style={styles.tasksHeader}>
+                    <Text variant="titleSmall" style={styles.tasksTitle}>Görevler</Text>
+                    <Button
+                      mode="contained-tonal"
+                      onPress={handleAddTask}
+                      icon="plus"
+                      style={styles.addTaskButton}
+                    >
+                      Görev Ekle
+                    </Button>
+                  </View>
+
+                  {memberTasks.map((task, index) => (
+                    <View key={index} style={styles.taskItem}>
+                      <View style={styles.taskHeader}>
+                        <Text variant="titleSmall" style={styles.taskNumber}>Görev {index + 1}</Text>
+                        {index > 0 && (
+                          <IconButton
+                            icon="close"
+                            size={20}
+                            onPress={() => handleRemoveTask(index)}
+                            style={styles.removeTaskButton}
+                          />
+                        )}
+                      </View>
+
+                      <TextInput
+                        mode="flat"
+                        value={task.title}
+                        onChangeText={(text: string) => handleTaskTitleChangeForIndex(index, text)}
+                        placeholder="Görev başlığını girin"
+                        style={styles.modalInput}
+                        underlineColor="transparent"
+                        activeUnderlineColor={theme.colors.primary}
+                        left={<TextInput.Icon icon="format-list-checks" color={theme.colors.primary} />}
+                      />
+
+                      <View style={styles.dateRow}>
+                        <View style={styles.dateInputGroup}>
+                          <Text variant="bodySmall" style={styles.inputLabel}>Atama Tarihi</Text>
+                          <TouchableOpacity 
+                            style={styles.modalDateButton}
+                            onPress={() => {
+                              setSelectedTaskIndex(index);
+                              setShowNewMemberTaskStartDatePicker(true);
+                            }}
+                          >
+                            <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
+                            <Text style={styles.modalDateText}>{formatDate(task.startDate)}</Text>
+                          </TouchableOpacity>
+                        </View>
+                        
+                        <View style={styles.dateInputGroup}>
+                          <Text variant="bodySmall" style={styles.inputLabel}>Teslim Tarihi</Text>
+                          <TouchableOpacity 
+                            style={styles.modalDateButton}
+                            onPress={() => {
+                              setSelectedTaskIndex(index);
+                              setShowNewMemberTaskEndDatePicker(true);
+                            }}
+                          >
+                            <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
+                            <Text style={styles.modalDateText}>{formatDate(task.endDate)}</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
                 </View>
               </View>
-            </View>
+            </ScrollView>
             
             <View style={styles.modalFooter}>
               <Button 
@@ -580,7 +670,7 @@ const NewProjectScreen = ({ navigation }: Props) => {
             <TextInput
               mode="flat"
               value={newTaskTitle}
-              onChangeText={setNewTaskTitle}
+              onChangeText={handleTaskTitleChange}
               placeholder="Görev başlığı"
               style={styles.modalInput}
               underlineColor="transparent"
@@ -642,8 +732,10 @@ const NewProjectScreen = ({ navigation }: Props) => {
                   key={member.id}
                   title={member.name}
                   description={member.role}
-                  left={props => <Avatar.Image {...props} size={40} source={{ uri: member.avatar }} />}
-                  right={props => (
+                  left={(props: { color: string; style: any }) => (
+                    <Avatar.Image {...props} size={40} source={{ uri: member.avatar }} />
+                  )}
+                  right={(props: { color: string; style?: any }) => (
                     <IconButton
                       {...props}
                       icon="check"
@@ -751,6 +843,9 @@ const styles = StyleSheet.create({
   inputContent: {
     paddingVertical: 12,
     fontSize: 16,
+    color: '#000',
+    height: 50,
+    textAlignVertical: 'center',
   },
   textArea: {
     height: 120,
@@ -760,6 +855,9 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 12,
     fontSize: 16,
+    color: '#000',
+    minHeight: 100,
+    textAlignVertical: 'top',
   },
   characterCount: {
     fontSize: 12,
@@ -828,6 +926,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     backgroundColor: '#f8f9fa',
     borderRadius: 8,
+    fontSize: 16,
+    color: '#000',
+    height: 50,
+    paddingHorizontal: 12,
   },
   modalActions: {
     flexDirection: 'row',
@@ -849,94 +951,70 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   memberCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
     backgroundColor: '#fff',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
-  memberInfo: {
+  memberHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    marginBottom: 16,
   },
   memberAvatar: {
-    marginRight: 12,
+    marginRight: 16,
+    backgroundColor: '#f0f0f0',
   },
   memberDetails: {
     flex: 1,
   },
   memberName: {
-    fontWeight: '500',
+    fontWeight: '600',
+    marginBottom: 4,
   },
   memberRole: {
     color: '#666',
+    fontSize: 14,
   },
   memberActionButton: {
     margin: 0,
-    padding: 0,
   },
-  modalDivider: {
-    marginVertical: 16,
+  memberTasksContainer: {
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    paddingTop: 16,
   },
-  modalDateContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  modalDateInputContainer: {
-    flex: 1,
-    marginHorizontal: 4,
-  },
-  modalDateLabel: {
-    marginBottom: 8,
-    color: '#666',
-  },
-  modalDateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  modalDateText: {
-    marginLeft: 8,
+  memberTasksTitle: {
+    fontWeight: '600',
+    marginBottom: 12,
     color: '#333',
-    fontSize: 14,
   },
-  membersList: {
-    marginTop: 16,
+  memberTasksList: {
+    gap: 12,
   },
-  memberListItem: {
-    paddingVertical: 8,
-  },
-  tasksContainer: {
-    marginTop: 16,
-  },
-  taskCard: {
-    padding: 16,
-    marginBottom: 8,
-    borderRadius: 8,
-  },
-  taskInfo: {
-    marginBottom: 8,
-  },
-  taskTitle: {
-    fontWeight: '500',
-  },
-  taskDueDate: {
-    color: '#666',
-    marginTop: 4,
-  },
-  taskActions: {
+  memberTaskItem: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 12,
   },
-  assigneeChip: {
-    marginLeft: 8,
+  taskIcon: {
+    marginRight: 12,
+    marginTop: 2,
+  },
+  taskDetails: {
+    flex: 1,
+  },
+  memberTaskTitle: {
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  memberTaskDueDate: {
+    fontSize: 12,
+    color: '#666',
   },
   emptyText: {
     textAlign: 'center',
@@ -954,11 +1032,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    margin: 0,
+    padding: 0,
   },
   alertContent: {
-    width: '90%',
+    width: 350,
+    height: 450,
     borderRadius: 8,
     overflow: 'hidden',
+    marginHorizontal: 16,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   alertTitle: {
     textAlign: 'center',
@@ -1026,6 +1116,122 @@ const styles = StyleSheet.create({
   },
   addButton: {
     backgroundColor: '#6200EE',
+  },
+  tasksSection: {
+    marginTop: 16,
+  },
+  tasksHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  tasksTitle: {
+    fontWeight: 'bold',
+  },
+  addTaskButton: {
+    borderRadius: 8,
+  },
+  taskItem: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  taskHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  taskNumber: {
+    fontWeight: 'bold',
+    color: '#6200EE',
+  },
+  removeTaskButton: {
+    margin: 0,
+  },
+  modalScrollView: {
+    maxHeight: '70%',
+  },
+  modalScrollContent: {
+    paddingBottom: 16,
+  },
+  nativeInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    height: 50,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+  },
+  inputIcon: {
+    marginRight: 8,
+  },
+  memberListItem: {
+    paddingVertical: 8,
+  },
+  membersList: {
+    marginTop: 16,
+  },
+  tasksContainer: {
+    marginTop: 16,
+  },
+  taskCard: {
+    padding: 16,
+    marginBottom: 8,
+    borderRadius: 8,
+  },
+  taskInfo: {
+    marginBottom: 8,
+  },
+  taskTitle: {
+    fontWeight: '500',
+  },
+  taskDueDate: {
+    color: '#666',
+    marginTop: 4,
+  },
+  assigneeChip: {
+    marginLeft: 8,
+  },
+  taskActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  modalDivider: {
+    marginVertical: 16,
+  },
+  modalDateContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalDateInputContainer: {
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  modalDateLabel: {
+    marginBottom: 8,
+    color: '#666',
+  },
+  modalDateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    height: 50,
+  },
+  modalDateText: {
+    marginLeft: 8,
+    color: '#333',
+    fontSize: 14,
   },
 });
 
