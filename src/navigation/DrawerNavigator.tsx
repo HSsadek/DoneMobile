@@ -1,6 +1,6 @@
 import React from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/home/HomeScreen';
 import ProjectDetailScreen from '../screens/project/ProjectDetailScreen';
@@ -19,8 +19,11 @@ const CustomDrawerContent = (props: any) => {
     <SafeAreaView style={styles.drawerContainer}>
       <View style={styles.drawerHeader}>
         <View style={styles.userInfo}>
-          <View style={styles.avatar}>
-            <Ionicons name="person" size={24} color="#fff" />
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatar}>
+              <Ionicons name="person" size={32} color="#fff" />
+            </View>
+            <View style={styles.onlineIndicator} />
           </View>
           <View style={styles.userTextContainer}>
             <Text style={styles.userName}>Kullanıcı Adı</Text>
@@ -31,53 +34,97 @@ const CustomDrawerContent = (props: any) => {
 
       <View style={styles.drawerContent}>
         <TouchableOpacity
-          style={styles.drawerItem}
+          style={[styles.drawerItem, props.state.index === 0 && styles.drawerItemActive]}
           onPress={() => props.navigation.navigate('Home')}
         >
-          <Ionicons name="home-outline" size={24} color="#333" />
-          <Text style={styles.drawerItemText}>Projelerim</Text>
+          <View style={[styles.iconContainer, props.state.index === 0 && styles.iconContainerActive]}>
+            <Ionicons 
+              name="home-outline" 
+              size={22} 
+              color={props.state.index === 0 ? '#007AFF' : '#666'} 
+            />
+          </View>
+          <Text style={[styles.drawerItemText, props.state.index === 0 && styles.drawerItemTextActive]}>
+            Projelerim
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.drawerItem}
+          style={[styles.drawerItem, props.state.index === 3 && styles.drawerItemActive]}
           onPress={() => props.navigation.navigate('NewProject')}
         >
-          <Ionicons name="add-circle-outline" size={24} color="#333" />
-          <Text style={styles.drawerItemText}>Yeni Proje</Text>
+          <View style={[styles.iconContainer, props.state.index === 3 && styles.iconContainerActive]}>
+            <Ionicons 
+              name="add-circle-outline" 
+              size={22} 
+              color={props.state.index === 3 ? '#007AFF' : '#666'} 
+            />
+          </View>
+          <Text style={[styles.drawerItemText, props.state.index === 3 && styles.drawerItemTextActive]}>
+            Yeni Proje
+          </Text>
         </TouchableOpacity>
 
+        <View style={styles.drawerDivider} />
+
         <TouchableOpacity
-          style={styles.drawerItem}
+          style={[styles.drawerItem, props.state.index === 4 && styles.drawerItemActive]}
           onPress={() => props.navigation.navigate('Settings')}
         >
-          <Ionicons name="settings-outline" size={24} color="#333" />
-          <Text style={styles.drawerItemText}>Ayarlar</Text>
+          <View style={[styles.iconContainer, props.state.index === 4 && styles.iconContainerActive]}>
+            <Ionicons 
+              name="settings-outline" 
+              size={22} 
+              color={props.state.index === 4 ? '#007AFF' : '#666'} 
+            />
+          </View>
+          <Text style={[styles.drawerItemText, props.state.index === 4 && styles.drawerItemTextActive]}>
+            Ayarlar
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.drawerItem}
+          style={[styles.drawerItem, props.state.index === 5 && styles.drawerItemActive]}
           onPress={() => props.navigation.navigate('Profile')}
         >
-          <Ionicons name="person-outline" size={24} color="#333" />
-          <Text style={styles.drawerItemText}>Profil</Text>
+          <View style={[styles.iconContainer, props.state.index === 5 && styles.iconContainerActive]}>
+            <Ionicons 
+              name="person-outline" 
+              size={22} 
+              color={props.state.index === 5 ? '#007AFF' : '#666'} 
+            />
+          </View>
+          <Text style={[styles.drawerItemText, props.state.index === 5 && styles.drawerItemTextActive]}>
+            Profil
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.drawerItem}
+          style={[styles.drawerItem, props.state.index === 6 && styles.drawerItemActive]}
           onPress={() => props.navigation.navigate('Help')}
         >
-          <Ionicons name="help-circle-outline" size={24} color="#333" />
-          <Text style={styles.drawerItemText}>Yardım</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.drawerItem}
-          onPress={() => props.navigation.navigate('Logout')}
-        >
-          <Ionicons name="log-out-outline" size={24} color="#333" />
-          <Text style={styles.drawerItemText}>Çıkış Yap</Text>
+          <View style={[styles.iconContainer, props.state.index === 6 && styles.iconContainerActive]}>
+            <Ionicons 
+              name="help-circle-outline" 
+              size={22} 
+              color={props.state.index === 6 ? '#007AFF' : '#666'} 
+            />
+          </View>
+          <Text style={[styles.drawerItemText, props.state.index === 6 && styles.drawerItemTextActive]}>
+            Yardım
+          </Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity
+        style={styles.logoutButton}
+        onPress={() => props.navigation.navigate('Logout')}
+      >
+        <View style={styles.logoutContent}>
+          <Ionicons name="log-out-outline" size={22} color="#FF3B30" />
+          <Text style={styles.logoutText}>Çıkış Yap</Text>
+        </View>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -141,29 +188,46 @@ const styles = StyleSheet.create({
   drawerHeader: {
     paddingTop: 40,
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 24,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+    backgroundColor: '#f8f9fa',
   },
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  avatarContainer: {
+    position: 'relative',
+    marginRight: 15,
+  },
   avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#007AFF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 15,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  onlineIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#4CD964',
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   userTextContainer: {
     flex: 1,
   },
   userName: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: '#333',
     marginBottom: 4,
   },
@@ -173,20 +237,65 @@ const styles = StyleSheet.create({
   },
   drawerContent: {
     flex: 1,
-    paddingTop: 20,
+    paddingTop: 12,
   },
   drawerItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 8,
+    marginVertical: 4,
+    borderRadius: 8,
+  },
+  drawerItemActive: {
+    backgroundColor: '#f0f8ff',
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    backgroundColor: '#f8f9fa',
+  },
+  iconContainerActive: {
+    backgroundColor: '#e6f2ff',
   },
   drawerItemText: {
     fontSize: 16,
-    color: '#333',
-    marginLeft: 15,
+    color: '#666',
+    fontWeight: '500',
+  },
+  drawerItemTextActive: {
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  drawerDivider: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
+    marginVertical: 12,
+    marginHorizontal: 16,
+  },
+  logoutButton: {
+    marginHorizontal: 16,
+    marginBottom: 24,
+    borderRadius: 8,
+    backgroundColor: '#FFF5F5',
+    overflow: 'hidden',
+  },
+  logoutContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF3B30',
+    marginLeft: 12,
   },
 });
 
