@@ -335,15 +335,17 @@ const NewProjectScreen = ({ navigation }: Props) => {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color="#333" />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.onSecondary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Yeni Proje</Text>
-          <TouchableOpacity
-            style={styles.saveButton}
+          <Button
+            mode="text"
             onPress={handleCreate}
+            textColor={theme.colors.secondary}
+            labelStyle={styles.saveButtonText}
           >
-            <Text style={styles.saveButtonText}>Oluştur</Text>
-          </TouchableOpacity>
+            Oluştur
+          </Button>
         </View>
 
         <ScrollView style={styles.content}>
@@ -388,7 +390,7 @@ const NewProjectScreen = ({ navigation }: Props) => {
                   onPress={() => setShowStartDatePicker(true)}
                 >
                   <Text style={styles.dateButtonText}>{formatDate(startDate)}</Text>
-                  <Ionicons name="calendar-outline" size={20} color="#666" />
+                  <Ionicons name="calendar-outline" size={20} color={theme.colors.onSecondary} />
                 </TouchableOpacity>
               </View>
 
@@ -399,7 +401,7 @@ const NewProjectScreen = ({ navigation }: Props) => {
                   onPress={() => setShowEndDatePicker(true)}
                 >
                   <Text style={styles.dateButtonText}>{formatDate(endDate)}</Text>
-                  <Ionicons name="calendar-outline" size={20} color="#666" />
+                  <Ionicons name="calendar-outline" size={20} color={theme.colors.onSecondary} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -413,7 +415,7 @@ const NewProjectScreen = ({ navigation }: Props) => {
                 style={styles.addButton}
                 onPress={() => setShowAddMemberModal(true)}
               >
-                <Ionicons name="person-add-outline" size={20} color="#007AFF" />
+                <Ionicons name="person-add-outline" size={20} color={theme.colors.onSecondaryContainer} />
                 <Text style={styles.addButtonText}>Üye Ekle</Text>
               </TouchableOpacity>
             </View>
@@ -431,7 +433,7 @@ const NewProjectScreen = ({ navigation }: Props) => {
                 style={styles.addButton}
                 onPress={() => setShowAddTaskModal(true)}
               >
-                <Ionicons name="add-circle-outline" size={20} color="#007AFF" />
+                <Ionicons name="add-circle-outline" size={20} color={theme.colors.onSecondaryContainer} />
                 <Text style={styles.addButtonText}>Görev Ekle</Text>
               </TouchableOpacity>
             </View>
@@ -452,7 +454,7 @@ const NewProjectScreen = ({ navigation }: Props) => {
                     style={styles.removeTaskButton}
                     onPress={() => handleRemoveTask(task.id)}
                   >
-                    <Ionicons name="close-circle-outline" size={24} color="#FF3B30" />
+                    <Ionicons name="close-circle-outline" size={24} color={theme.colors.onSecondary} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -474,7 +476,7 @@ const NewProjectScreen = ({ navigation }: Props) => {
                   style={styles.modalCloseButton}
                   onPress={() => setShowAddMemberModal(false)}
                 >
-                  <Ionicons name="close" size={24} color="#666" />
+                  <Ionicons name="close" size={24} color={theme.colors.onSecondary} />
                 </TouchableOpacity>
               </View>
 
@@ -541,7 +543,7 @@ const NewProjectScreen = ({ navigation }: Props) => {
                   style={styles.modalCloseButton}
                   onPress={() => setShowAddTaskModal(false)}
                 >
-                  <Ionicons name="close" size={24} color="#666" />
+                  <Ionicons name="close" size={24} color={theme.colors.onSecondary} />
                 </TouchableOpacity>
               </View>
 
@@ -564,7 +566,7 @@ const NewProjectScreen = ({ navigation }: Props) => {
                       onPress={() => setShowTaskStartDatePicker(true)}
                     >
                       <Text style={styles.dateButtonText}>{formatDate(newTaskStartDate)}</Text>
-                      <Ionicons name="calendar-outline" size={20} color="#666" />
+                      <Ionicons name="calendar-outline" size={20} color={theme.colors.onSecondary} />
                     </TouchableOpacity>
                   </View>
 
@@ -575,7 +577,7 @@ const NewProjectScreen = ({ navigation }: Props) => {
                       onPress={() => setShowTaskDueDatePicker(true)}
                     >
                       <Text style={styles.dateButtonText}>{formatDate(newTaskDueDate)}</Text>
-                      <Ionicons name="calendar-outline" size={20} color="#666" />
+                      <Ionicons name="calendar-outline" size={20} color={theme.colors.onSecondary} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -760,12 +762,8 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: theme.colors.onBackground,
     flex: 1,
   },
-  saveButton: {
-    padding: 8,
-  },
   saveButtonText: {
     fontSize: 16,
-    color: '#007AFF',
     fontWeight: '600',
   },
   content: {
@@ -789,13 +787,13 @@ const createStyles = (theme: any) => StyleSheet.create({
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E3F2FF',
+    backgroundColor: theme.colors.secondaryContainer,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
   },
   addButtonText: {
-    color: '#007AFF',
+    color: theme.colors.onSecondaryContainer,
     marginLeft: 4,
     fontWeight: '500',
   },
@@ -895,12 +893,12 @@ const createStyles = (theme: any) => StyleSheet.create({
     backgroundColor: theme.colors.surfaceVariant,
   },
   modalSaveButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.secondary,
   },
   modalButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.onPrimary,
+    color: theme.colors.onSecondary,
   },
   inputContainer: {
     marginBottom: 20,
@@ -988,8 +986,8 @@ const createStyles = (theme: any) => StyleSheet.create({
     borderColor: theme.colors.outline,
   },
   memberSelectButtonActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: '#007AFF',
+    backgroundColor: theme.colors.secondary,
+    borderColor: theme.colors.secondary,
   },
   memberSelectButtonText: {
     fontSize: 14,

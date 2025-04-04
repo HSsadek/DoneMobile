@@ -471,7 +471,7 @@ const HomeScreen = ({ navigation }: Props) => {
                         {project.status !== 'tamamlanan' && (
                           <Button
                             mode="contained"
-                            style={[styles.navigationButton, styles.nextButton]}
+                            style={[styles.navigationButton, { backgroundColor: theme.colors.secondary }]}
                             contentStyle={styles.navigationButtonContent}
                             onPress={() => moveToNextStage(project.id)}
                           >
@@ -653,9 +653,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginHorizontal: 4,
   },
-  nextButton: {
-    backgroundColor: '#007AFF',
-  },
+  // nextButton stil kaldırıldı - tema rengi doğrudan kullanılıyor
   navigationButtonContent: {
     paddingVertical: 6,
   },
