@@ -1,16 +1,19 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerStackParamList } from '../../navigation/types';
+import { Text, useTheme } from 'react-native-paper';
 
 type Props = DrawerScreenProps<DrawerStackParamList, 'Help'>;
 
 const HelpScreen = ({ navigation }: Props) => {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
+      <StatusBar style={theme.dark ? 'light' : 'dark'} />
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity
@@ -80,10 +83,10 @@ const HelpScreen = ({ navigation }: Props) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.background,
   },
   container: {
     flex: 1,
@@ -94,7 +97,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: theme.colors.surfaceVariant,
     marginTop: 20,
   },
   backButton: {
@@ -103,7 +106,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.onBackground,
     flex: 1,
   },
   content: {
@@ -116,7 +119,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.onBackground,
     marginBottom: 15,
   },
   faqItem: {
@@ -125,11 +128,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: theme.colors.surfaceVariant,
   },
   faqQuestion: {
     fontSize: 16,
-    color: '#333',
+    color: theme.colors.onBackground,
     flex: 1,
   },
   contactItem: {
@@ -138,7 +141,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: theme.colors.surfaceVariant,
   },
   contactItemLeft: {
     flexDirection: 'row',
@@ -146,7 +149,7 @@ const styles = StyleSheet.create({
   },
   contactItemText: {
     fontSize: 16,
-    color: '#333',
+    color: theme.colors.onBackground,
     marginLeft: 15,
   },
   otherItem: {
@@ -155,7 +158,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: theme.colors.surfaceVariant,
   },
   otherItemLeft: {
     flexDirection: 'row',
@@ -163,7 +166,7 @@ const styles = StyleSheet.create({
   },
   otherItemText: {
     fontSize: 16,
-    color: '#333',
+    color: theme.colors.onBackground,
     marginLeft: 15,
   },
 });

@@ -8,17 +8,15 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Text, Button, Portal, TextInput, Surface, Divider, useTheme, Avatar, Chip, List, IconButton } from 'react-native-paper';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { theme } from '../../theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import type { TeamMember, Task } from '../../types/project';
+import { TeamMember, Task, TaskStatus } from '../../types/project';
 import { generateId } from '../../utils/idGenerator';
 import { formatDate } from '../../utils/dateUtils';
 import { formatName } from '../../utils/nameUtils';
 import { sampleProjects } from '../home/HomeScreen';
-import type { TaskStatus } from '../home/HomeScreen';
 
 type Props = DrawerScreenProps<DrawerStackParamList, 'NewProject'>;
 
@@ -30,9 +28,9 @@ const capitalizeFirstLetter = (string: string) => {
 
 // Örnek ekip üyeleri
 const SAMPLE_TEAM_MEMBERS: TeamMember[] = [
-  { id: '1', name: 'Ahmet Yılmaz', role: 'Proje Yöneticisi', department: 'Yönetim' },
-  { id: '2', name: 'Ayşe Demir', role: 'Geliştirici', department: 'Yazılım' },
-  { id: '3', name: 'Mehmet Kaya', role: 'Tasarımcı', department: 'Tasarım' },
+  { id: '1', name: 'Ahmet Yılmaz', role: 'Proje Yöneticisi', department: 'Yönetim', avatar: undefined },
+  { id: '2', name: 'Ayşe Demir', role: 'Geliştirici', department: 'Yazılım', avatar: undefined },
+  { id: '3', name: 'Mehmet Kaya', role: 'Tasarımcı', department: 'Tasarım', avatar: undefined },
 ];
 
 // Örnek görevler
@@ -42,34 +40,37 @@ const SAMPLE_TASKS: Task[] = [
     title: 'Tasarım Dokümanı Hazırlama', 
     assignee: null, 
     startDate: new Date(),
-    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) 
+    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    status: 'yapilacak',
+    progress: 0
   },
   { 
     id: '2', 
     title: 'Frontend Geliştirme', 
     assignee: null, 
     startDate: new Date(),
-    dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) 
+    dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+    status: 'yapilacak',
+    progress: 0
   },
   { 
     id: '3', 
     title: 'Backend API Geliştirme', 
     assignee: null, 
     startDate: new Date(),
-    dueDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000) 
+    dueDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000),
+    status: 'yapilacak',
+    progress: 0
   },
 ];
 
 // Üye tipi tanımı
-type TeamMember = {
-  id: string;
-  name: string;
-  role: string;
-  avatar?: string;
-};
+
 
 // Üye kartı bileşeni
 const MemberCard = ({ member, tasks, onRemove }: { member: TeamMember; tasks: Task[]; onRemove: (id: string) => void }) => {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const getInitials = (name: string) => {
     return name.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase();
   };
@@ -124,6 +125,7 @@ const MemberCard = ({ member, tasks, onRemove }: { member: TeamMember; tasks: Ta
 
 const NewProjectScreen = ({ navigation }: Props) => {
   const theme = useTheme();
+  const styles = createStyles(theme);
   const [projectTitle, setProjectTitle] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [startDate, setStartDate] = useState(new Date());
@@ -291,6 +293,8 @@ const NewProjectScreen = ({ navigation }: Props) => {
         assignee: null,
         startDate: newTaskStartDate,
         dueDate: newTaskDueDate,
+        status: 'yapilacak',
+        progress: 0
       };
       setTasks([...tasks, newTask]);
       setNewTaskTitle('');
@@ -311,10 +315,9 @@ const NewProjectScreen = ({ navigation }: Props) => {
     setSelectedTask(null);
   };
 
-  const handleRemoveTask = (index: number) => {
-    const newTasks = [...memberTasks];
-    newTasks.splice(index, 1);
-    setMemberTasks(newTasks);
+  // Görev silme
+  const handleRemoveTask = (taskId: string) => {
+    setTasks(tasks.filter(task => task.id !== taskId));
   };
 
   const handleUpdateTask = (index: number, field: 'title' | 'startDate' | 'endDate', value: string | Date) => {
@@ -325,7 +328,7 @@ const NewProjectScreen = ({ navigation }: Props) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
+      <StatusBar style={theme.dark ? 'light' : 'dark'} />
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity
@@ -350,22 +353,30 @@ const NewProjectScreen = ({ navigation }: Props) => {
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Proje Adı</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
                 value={projectTitle}
                 onChangeText={setProjectTitle}
                 placeholder="Proje adını girin"
+                outlineColor={theme.colors.outline}
+                activeOutlineColor={theme.colors.primary}
+                textColor={theme.colors.onBackground}
+                style={{ backgroundColor: theme.colors.elevation.level1 }}
               />
             </View>
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Açıklama</Text>
               <TextInput
-                style={[styles.input, styles.textArea]}
+                mode="outlined"
                 value={projectDescription}
                 onChangeText={setProjectDescription}
                 placeholder="Proje açıklamasını girin"
                 multiline
                 numberOfLines={4}
+                outlineColor={theme.colors.outline}
+                activeOutlineColor={theme.colors.primary}
+                textColor={theme.colors.onBackground}
+                style={{ backgroundColor: theme.colors.elevation.level1, minHeight: 120 }}
               />
             </View>
 
@@ -471,20 +482,28 @@ const NewProjectScreen = ({ navigation }: Props) => {
                 <View style={styles.inputContainer}>
                   <Text style={styles.label}>İsim Soyisim</Text>
                   <TextInput
-                    style={styles.input}
+                    mode="outlined"
                     value={newMemberName}
                     onChangeText={setNewMemberName}
                     placeholder="Üye ismini girin"
+                    outlineColor={theme.colors.outline}
+                    activeOutlineColor={theme.colors.primary}
+                    textColor={theme.colors.onBackground}
+                    style={{ backgroundColor: theme.colors.elevation.level1 }}
                   />
                 </View>
 
                 <View style={styles.inputContainer}>
                   <Text style={styles.label}>Rol</Text>
                   <TextInput
-                    style={styles.input}
+                    mode="outlined"
                     value={newMemberRole}
                     onChangeText={setNewMemberRole}
                     placeholder="Üye rolünü girin"
+                    outlineColor={theme.colors.outline}
+                    activeOutlineColor={theme.colors.primary}
+                    textColor={theme.colors.onBackground}
+                    style={{ backgroundColor: theme.colors.elevation.level1 }}
                   />
                 </View>
               </View>
@@ -715,10 +734,10 @@ const NewProjectScreen = ({ navigation }: Props) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.background,
   },
   container: {
     flex: 1,
@@ -738,7 +757,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.onBackground,
     flex: 1,
   },
   saveButton: {
@@ -781,12 +800,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   memberCard: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.elevation.level1,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E1E1E1',
+    borderColor: theme.colors.outline,
   },
   memberInfo: {
     flexDirection: 'row',
@@ -796,12 +815,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   memberInitials: {
-    color: '#fff',
+    color: theme.colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -812,16 +831,16 @@ const styles = StyleSheet.create({
   memberName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.onBackground,
   },
   memberRole: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.onSurfaceVariant,
     marginTop: 2,
   },
   memberDepartment: {
     fontSize: 12,
-    color: '#007AFF',
+    color: theme.colors.primary,
     marginTop: 2,
     fontWeight: '500',
   },
@@ -830,12 +849,12 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: theme.dark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.elevation.level2,
     borderRadius: 12,
     width: '90%',
     maxHeight: '80%',
@@ -846,12 +865,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E1E1E1',
+    borderBottomColor: theme.colors.surfaceVariant,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.onBackground,
   },
   modalCloseButton: {
     padding: 4,
@@ -873,30 +892,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalCancelButton: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: theme.colors.surfaceVariant,
   },
   modalSaveButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.primary,
   },
   modalButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: theme.colors.onPrimary,
   },
   inputContainer: {
     marginBottom: 20,
   },
   label: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.onSurfaceVariant,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.elevation.level1,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: '#333',
+    color: theme.colors.onBackground,
   },
   textArea: {
     height: 100,
@@ -912,22 +931,22 @@ const styles = StyleSheet.create({
   dateButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: theme.colors.elevation.level1,
     padding: 12,
     borderRadius: 8,
   },
   dateButtonText: {
-    color: '#333',
+    color: theme.colors.onBackground,
     fontSize: 16,
     marginRight: 4,
   },
   taskCard: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.elevation.level1,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E1E1E1',
+    borderColor: theme.colors.outline,
   },
   taskInfo: {
     flexDirection: 'row',
@@ -939,17 +958,17 @@ const styles = StyleSheet.create({
   taskTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.onBackground,
     marginBottom: 4,
   },
   taskAssignee: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.onSurfaceVariant,
     marginBottom: 2,
   },
   taskDueDate: {
     fontSize: 12,
-    color: '#007AFF',
+    color: theme.colors.primary,
   },
   removeTaskButton: {
     padding: 4,
@@ -964,12 +983,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: theme.colors.elevation.level1,
     borderWidth: 1,
-    borderColor: '#E1E1E1',
+    borderColor: theme.colors.outline,
   },
   memberSelectButtonActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.primary,
     borderColor: '#007AFF',
   },
   memberSelectButtonText: {

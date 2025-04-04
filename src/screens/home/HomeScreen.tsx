@@ -5,12 +5,10 @@ import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerStackParamList } from '../../navigation/types';
 import { Button, useTheme, FAB } from 'react-native-paper';
-import { TeamMember } from '../../types/project';
+import { TeamMember, TaskStatus } from '../../types/project';
 import { CustomTheme } from '../../theme';
 
 type Props = DrawerScreenProps<DrawerStackParamList, 'Home'>;
-
-export type TaskStatus = 'yapilacak' | 'devam' | 'test' | 'tamamlanan';
 
 const { width } = Dimensions.get('window');
 
