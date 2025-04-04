@@ -6,6 +6,8 @@ export type Project = {
   endDate: Date;
   teamMembers: TeamMember[];
   tasks: Task[];
+  status: TaskStatus;
+  progress: number;
 };
 
 export type TeamMember = {
@@ -16,10 +18,15 @@ export type TeamMember = {
   avatar?: string;
 };
 
+export type TaskStatus = 'yapilacak' | 'devam' | 'test' | 'tamamlanan';
+
 export type Task = {
   id: string;
   title: string;
+  description?: string;
   assignee: string | null;
   dueDate: Date;
   startDate: Date;
-}; 
+  status: TaskStatus;
+  progress: number;
+};

@@ -2,11 +2,11 @@ import { NavigatorScreenParams } from '@react-navigation/native';
 
 export type DrawerStackParamList = {
   Home: undefined;
-  ProjectDetail: { projectId: string };
-  EditProject: { projectId: string };
+  ProjectDetail: { projectId: string } | undefined;
+  EditProject: { projectId: string } | undefined;
   NewProject: undefined;
   Settings: undefined;
-  Profile: undefined;
+  Profile: { from?: 'settings' } | undefined;
   Help: undefined;
   Logout: undefined;
   Login: undefined;

@@ -1,86 +1,196 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { Text, useTheme, Avatar, TextInput, IconButton } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
-import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
+import { DrawerScreenProps } from '@react-navigation/drawer';
+import { useFocusEffect } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
 import { DrawerStackParamList } from '../../navigation/types';
+import { CustomTheme } from '../../theme';
 
 type Props = DrawerScreenProps<DrawerStackParamList, 'Profile'>;
 
-const ProfileScreen = ({ navigation }: Props) => {
+const ProfileScreen = ({ navigation, route }: Props) => {
+  const theme = useTheme() as CustomTheme;
+  const [isEditing, setIsEditing] = useState(false);
+  const [name, setName] = useState('John Doe');
+  const [email, setEmail] = useState('john.doe@example.com');
+  const [phone, setPhone] = useState('+90 555 123 4567');
+  const [role, setRole] = useState('Proje Yöneticisi');
+  const [image, setImage] = useState<string | null>(null);
+
+  // Sayfadan çıkıldığında düzenleme modunu kapat
+  useFocusEffect(
+    React.useCallback(() => {
+      // Sayfa odağı kaybedildiğinde çalışacak
+      return () => {
+        setIsEditing(false);
+      };
+    }, [])
+  );
+
+  const handleBack = () => {
+    // Geri tuşuna basıldığında düzenleme modunu kapat
+    setIsEditing(false);
+    if (route.params?.from === 'settings') {
+      navigation.navigate('Settings');
+    } else {
+      navigation.goBack();
+    }
+  };
+
+  const handleEdit = () => {
+    if (isEditing) {
+      // Burada profil bilgilerini kaydetme işlemi yapılabilir
+      // API çağrısı vb.
+    }
+    setIsEditing(!isEditing);
+  };
+
+  const pickImage = async () => {
+    try {
+      // Kamera izni iste
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'İzin Gerekli',
+          'Fotoğraf seçmek için galeri iznine ihtiyacımız var.',
+          [{ text: 'Tamam' }]
+        );
+        return;
+      }
+
+      // Galeriyi aç
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        setImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert(
+        'Hata',
+        'Fotoğraf seçilirken bir hata oluştu.',
+        [{ text: 'Tamam' }]
+      );
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color="#333" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Profil</Text>
-        </View>
-
-        <View style={styles.content}>
-          <View style={styles.profileSection}>
-            <View style={styles.avatarContainer}>
-              <Image
-                source={{ uri: 'https://via.placeholder.com/100' }}
-                style={styles.avatar}
-              />
-              <TouchableOpacity style={styles.editAvatarButton}>
-                <Ionicons name="camera" size={20} color="#fff" />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.name}>John Doe</Text>
-            <Text style={styles.email}>john.doe@example.com</Text>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Kişisel Bilgiler</Text>
-            <TouchableOpacity style={styles.menuItem}>
-              <View style={styles.menuItemLeft}>
-                <Ionicons name="person-outline" size={24} color="#666" />
-                <Text style={styles.menuItemText}>Ad Soyad</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={24} color="#666" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.menuItem}>
-              <View style={styles.menuItemLeft}>
-                <Ionicons name="mail-outline" size={24} color="#666" />
-                <Text style={styles.menuItemText}>E-posta</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={24} color="#666" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.menuItem}>
-              <View style={styles.menuItemLeft}>
-                <Ionicons name="call-outline" size={24} color="#666" />
-                <Text style={styles.menuItemText}>Telefon</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={24} color="#666" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>İstatistikler</Text>
-            <View style={styles.statsContainer}>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>12</Text>
-                <Text style={styles.statLabel}>Proje</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>48</Text>
-                <Text style={styles.statLabel}>Görev</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>85%</Text>
-                <Text style={styles.statLabel}>Tamamlanma</Text>
-              </View>
-            </View>
-          </View>
-        </View>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+      <StatusBar style={theme.dark ? 'light' : 'dark'} />
+      
+      <View style={[styles.header, { 
+        backgroundColor: theme.colors.surface,
+        marginTop: 24,
+        marginHorizontal: 16,
+        borderRadius: 12,
+      }]}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={handleBack}
+        >
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+        </TouchableOpacity>
+        <Text variant="titleLarge" style={[styles.title, { color: theme.colors.text }]}>
+          Profil
+        </Text>
+        <IconButton
+          icon={isEditing ? "check" : "pencil"}
+          iconColor={theme.colors.primary}
+          size={24}
+          onPress={handleEdit}
+        />
       </View>
+
+      <ScrollView style={styles.container}>
+        <View style={styles.content}>
+          <View style={styles.avatarContainer}>
+            <Avatar.Image
+              size={120}
+              source={
+                image 
+                  ? { uri: image }
+                  : { uri: `https://ui-avatars.com/api/?name=${name.replace(' ', '+')}&background=random` }
+              }
+            />
+            {isEditing && (
+              <TouchableOpacity 
+                style={[styles.editAvatarButton, { backgroundColor: theme.colors.primary }]}
+                onPress={pickImage}
+              >
+                <Ionicons name="camera" size={20} color={theme.colors.onPrimary} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <View style={styles.infoSection}>
+            <View style={styles.infoItem}>
+              <Text variant="labelLarge" style={{ color: theme.colors.primary }}>Ad Soyad</Text>
+              {isEditing ? (
+                <TextInput
+                  value={name}
+                  onChangeText={setName}
+                  mode="outlined"
+                  style={styles.input}
+                />
+              ) : (
+                <Text variant="bodyLarge" style={{ color: theme.colors.text }}>{name}</Text>
+              )}
+            </View>
+
+            <View style={styles.infoItem}>
+              <Text variant="labelLarge" style={{ color: theme.colors.primary }}>E-posta</Text>
+              {isEditing ? (
+                <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  mode="outlined"
+                  keyboardType="email-address"
+                  style={styles.input}
+                />
+              ) : (
+                <Text variant="bodyLarge" style={{ color: theme.colors.text }}>{email}</Text>
+              )}
+            </View>
+
+            <View style={styles.infoItem}>
+              <Text variant="labelLarge" style={{ color: theme.colors.primary }}>Telefon</Text>
+              {isEditing ? (
+                <TextInput
+                  value={phone}
+                  onChangeText={setPhone}
+                  mode="outlined"
+                  keyboardType="phone-pad"
+                  style={styles.input}
+                />
+              ) : (
+                <Text variant="bodyLarge" style={{ color: theme.colors.text }}>{phone}</Text>
+              )}
+            </View>
+
+            <View style={styles.infoItem}>
+              <Text variant="labelLarge" style={{ color: theme.colors.primary }}>Pozisyon</Text>
+              {isEditing ? (
+                <TextInput
+                  value={role}
+                  onChangeText={setRole}
+                  mode="outlined"
+                  style={styles.input}
+                />
+              ) : (
+                <Text variant="bodyLarge" style={{ color: theme.colors.text }}>{role}</Text>
+              )}
+            </View>
+          </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -88,113 +198,55 @@ const ProfileScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
-  },
-  container: {
-    flex: 1,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    marginTop: 20,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   backButton: {
-    marginRight: 15,
+    padding: 8,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
+  title: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  container: {
     flex: 1,
   },
   content: {
-    flex: 1,
-    padding: 20,
-  },
-  profileSection: {
-    alignItems: 'center',
-    marginBottom: 30,
+    padding: 16,
   },
   avatarContainer: {
+    alignItems: 'center',
+    marginVertical: 24,
     position: 'relative',
-    marginBottom: 15,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
   },
   editAvatarButton: {
     position: 'absolute',
-    right: 0,
     bottom: 0,
-    backgroundColor: '#007AFF',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
+    right: '30%',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
-  },
-  name: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 5,
-  },
-  email: {
-    fontSize: 16,
-    color: '#666',
-  },
-  section: {
-    marginBottom: 30,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 15,
-  },
-  menuItem: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    elevation: 2,
   },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  menuItemText: {
-    fontSize: 16,
-    color: '#333',
-    marginLeft: 15,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: '#f8f8f8',
-    padding: 20,
+  infoSection: {
+    backgroundColor: 'transparent',
     borderRadius: 12,
+    padding: 16,
+    gap: 24,
   },
-  statItem: {
-    alignItems: 'center',
+  infoItem: {
+    gap: 8,
   },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 5,
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#666',
+  input: {
+    backgroundColor: 'transparent',
   },
 });
 
-export default ProfileScreen; 
+export default ProfileScreen;

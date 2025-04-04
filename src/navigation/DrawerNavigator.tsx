@@ -2,163 +2,129 @@ import React from 'react';
 import { createDrawerNavigator, DrawerContentComponentProps } from '@react-navigation/drawer';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from 'react-native-paper';
 import HomeScreen from '../screens/home/HomeScreen';
 import ProjectDetailScreen from '../screens/project/ProjectDetailScreen';
 import EditProjectScreen from '../screens/project/EditProjectScreen';
 import NewProjectScreen from '../screens/project/NewProjectScreen';
-import SettingsScreen from '../screens/settings/SettingsScreen';
-import ProfileScreen from '../screens/profile/ProfileScreen';
 import HelpScreen from '../screens/help/HelpScreen';
 import LogoutScreen from '../screens/auth/LogoutScreen';
+import SettingsStack from './StackNavigator';
+import ProfileScreen from '../screens/profile/ProfileScreen';
 import type { DrawerStackParamList } from './types';
+import { CustomTheme } from '../theme';
 
 const Drawer = createDrawerNavigator<DrawerStackParamList>();
 
 const CustomDrawerContent = (props: DrawerContentComponentProps) => {
+  const theme = useTheme() as CustomTheme;
+
   return (
-    <SafeAreaView style={styles.drawerContainer}>
-      <View style={styles.drawerHeader}>
+    <SafeAreaView style={[styles.drawerContainer, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.drawerHeader, { 
+        borderBottomColor: theme.colors.border,
+        backgroundColor: theme.colors.surface
+      }]}>
         <View style={styles.userInfo}>
           <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={32} color="#fff" />
+            <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
+              <Ionicons name="person" size={32} color={theme.colors.onPrimary} />
             </View>
-            <View style={styles.onlineIndicator} />
+            <View style={[styles.onlineIndicator, { borderColor: theme.colors.background }]} />
           </View>
           <View style={styles.userTextContainer}>
-            <Text style={styles.userName}>Kullanıcı Adı</Text>
-            <Text style={styles.userEmail}>kullanici@email.com</Text>
+            <Text style={[styles.userName, { color: theme.colors.text }]}>Kullanıcı Adı</Text>
+            <Text style={[styles.userEmail, { color: theme.colors.text + '99' }]}>kullanici@email.com</Text>
           </View>
         </View>
       </View>
 
       <View style={styles.drawerContent}>
-        <TouchableOpacity
-          style={[styles.drawerItem, props.state.index === 0 && styles.drawerItemActive]}
-          onPress={() => props.navigation.navigate('Home')}
-        >
-          <View style={[styles.iconContainer, props.state.index === 0 && styles.iconContainerActive]}>
-            <Ionicons 
-              name="home-outline" 
-              size={22} 
-              color={props.state.index === 0 ? '#007AFF' : '#666'} 
-            />
-          </View>
-          <Text style={[styles.drawerItemText, props.state.index === 0 && styles.drawerItemTextActive]}>
-            Projelerim
-          </Text>
-        </TouchableOpacity>
+        {props.state.routes.map((route, index) => {
+          // Gizli ekranları atlayalım
+          if (route.name === 'ProjectDetail' || route.name === 'EditProject' || 
+              route.name === 'NewProject' || route.name === 'Logout') {
+            return null;
+          }
 
-        <TouchableOpacity
-          style={[styles.drawerItem, props.state.index === 3 && styles.drawerItemActive]}
-          onPress={() => props.navigation.navigate('NewProject')}
-        >
-          <View style={[styles.iconContainer, props.state.index === 3 && styles.iconContainerActive]}>
-            <Ionicons 
-              name="add-circle-outline" 
-              size={22} 
-              color={props.state.index === 3 ? '#007AFF' : '#666'} 
-            />
-          </View>
-          <Text style={[styles.drawerItemText, props.state.index === 3 && styles.drawerItemTextActive]}>
-            Yeni Proje
-          </Text>
-        </TouchableOpacity>
+          const isFocused = props.state.index === index;
+          let iconName: any = 'home-outline';
+          let label = '';
 
-        <View style={styles.drawerDivider} />
+          switch (route.name) {
+            case 'Home':
+              iconName = 'home-outline';
+              label = 'Projelerim';
+              break;
+            case 'Settings':
+              iconName = 'settings-outline';
+              label = 'Ayarlar';
+              break;
+            case 'Profile':
+              iconName = 'person-outline';
+              label = 'Profil';
+              break;
+            case 'Help':
+              iconName = 'help-circle-outline';
+              label = 'Yardım';
+              break;
+          }
 
-        <TouchableOpacity
-          style={[styles.drawerItem, props.state.index === 4 && styles.drawerItemActive]}
-          onPress={() => props.navigation.navigate('Settings')}
-        >
-          <View style={[styles.iconContainer, props.state.index === 4 && styles.iconContainerActive]}>
-            <Ionicons 
-              name="settings-outline" 
-              size={22} 
-              color={props.state.index === 4 ? '#007AFF' : '#666'} 
-            />
-          </View>
-          <Text style={[styles.drawerItemText, props.state.index === 4 && styles.drawerItemTextActive]}>
-            Ayarlar
-          </Text>
-        </TouchableOpacity>
+          return (
+            <TouchableOpacity
+              key={route.key}
+              style={[
+                styles.drawerItem,
+                isFocused && { backgroundColor: theme.colors.primary + '20' }
+              ]}
+              onPress={() => props.navigation.navigate(route.name)}
+            >
+              <View style={[
+                styles.iconContainer,
+                isFocused && { backgroundColor: theme.colors.primary + '20' }
+              ]}>
+                <Ionicons 
+                  name={iconName}
+                  size={22}
+                  color={isFocused ? theme.colors.primary : theme.colors.text + '99'}
+                />
+              </View>
+              <Text style={[
+                styles.drawerItemText,
+                { color: theme.colors.text + '99' },
+                isFocused && { color: theme.colors.primary, fontWeight: '600' }
+              ]}>
+                {label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
 
-        <TouchableOpacity
-          style={[styles.drawerItem, props.state.index === 5 && styles.drawerItemActive]}
-          onPress={() => props.navigation.navigate('Profile')}
+        <TouchableOpacity 
+          style={styles.logoutButton}
+          onPress={() => props.navigation.navigate('Logout')}
         >
-          <View style={[styles.iconContainer, props.state.index === 5 && styles.iconContainerActive]}>
-            <Ionicons 
-              name="person-outline" 
-              size={22} 
-              color={props.state.index === 5 ? '#007AFF' : '#666'} 
-            />
+          <View style={styles.logoutContent}>
+            <Ionicons name="log-out-outline" size={22} color={theme.colors.error} />
+            <Text style={[styles.logoutText, { color: theme.colors.error }]}>
+              Çıkış Yap
+            </Text>
           </View>
-          <Text style={[styles.drawerItemText, props.state.index === 5 && styles.drawerItemTextActive]}>
-            Profil
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.drawerItem, props.state.index === 6 && styles.drawerItemActive]}
-          onPress={() => props.navigation.navigate('Help')}
-        >
-          <View style={[styles.iconContainer, props.state.index === 6 && styles.iconContainerActive]}>
-            <Ionicons 
-              name="help-circle-outline" 
-              size={22} 
-              color={props.state.index === 6 ? '#007AFF' : '#666'} 
-            />
-          </View>
-          <Text style={[styles.drawerItemText, props.state.index === 6 && styles.drawerItemTextActive]}>
-            Yardım
-          </Text>
         </TouchableOpacity>
       </View>
-
-      <TouchableOpacity
-        style={styles.logoutButton}
-        onPress={() => props.navigation.navigate('Logout')}
-      >
-        <View style={styles.logoutContent}>
-          <Ionicons name="log-out-outline" size={22} color="#FF3B30" />
-          <Text style={styles.logoutText}>Çıkış Yap</Text>
-        </View>
-      </TouchableOpacity>
     </SafeAreaView>
   );
 };
 
 const DrawerNavigator = () => {
+  const theme = useTheme() as CustomTheme;
+
   return (
     <Drawer.Navigator
-      drawerContent={(props: DrawerContentComponentProps) => <CustomDrawerContent {...props} />}
+      drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={{
         headerShown: false,
-        drawerStyle: {
-          width: '80%',
-          backgroundColor: '#fff',
-        },
-        drawerLabelStyle: {
-          fontSize: 16,
-          color: '#333',
-        },
-        drawerActiveTintColor: '#007AFF',
-        drawerInactiveTintColor: '#666',
-        drawerType: 'slide',
-        overlayColor: 'rgba(0,0,0,0.7)',
-        swipeEdgeWidth: 100,
-        swipeMinDistance: 100,
-        sceneContainerStyle: {
-          shadowColor: '#000',
-          shadowOffset: {
-            width: -2,
-            height: 0,
-          },
-          shadowOpacity: 0.15,
-          shadowRadius: 5,
-        },
-        gestureEnabled: true,
+        drawerType: 'front',
         swipeEnabled: false
       }}
     >
@@ -173,32 +139,26 @@ const DrawerNavigator = () => {
         name="ProjectDetail" 
         component={ProjectDetailScreen}
         options={{
-          drawerItemStyle: { display: 'none' },
-          unmountOnBlur: true,
-          swipeEnabled: false
+          drawerItemStyle: { display: 'none' }
         }}
       />
       <Drawer.Screen 
         name="EditProject" 
-        component={EditProjectScreen}
+        component={EditProjectScreen as any}
         options={{
-          drawerItemStyle: { display: 'none' },
-          unmountOnBlur: true,
-          swipeEnabled: false
+          drawerItemStyle: { display: 'none' }
         }}
       />
       <Drawer.Screen 
         name="NewProject" 
         component={NewProjectScreen}
         options={{
-          drawerItemStyle: { display: 'none' },
-          unmountOnBlur: true,
-          swipeEnabled: false
+          drawerItemStyle: { display: 'none' }
         }}
       />
       <Drawer.Screen 
         name="Settings" 
-        component={SettingsScreen}
+        component={SettingsStack}
         options={{
           swipeEnabled: true
         }}
@@ -219,11 +179,9 @@ const DrawerNavigator = () => {
       />
       <Drawer.Screen 
         name="Logout" 
-        component={LogoutScreen}
+        component={LogoutScreen as any}
         options={{
-          drawerItemStyle: { display: 'none' },
-          unmountOnBlur: true,
-          swipeEnabled: false
+          drawerItemStyle: { display: 'none' }
         }}
       />
     </Drawer.Navigator>
@@ -233,15 +191,12 @@ const DrawerNavigator = () => {
 const styles = StyleSheet.create({
   drawerContainer: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   drawerHeader: {
     paddingTop: 40,
     paddingHorizontal: 20,
     paddingBottom: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    backgroundColor: '#f8f9fa',
   },
   userInfo: {
     flexDirection: 'row',
@@ -255,7 +210,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#007AFF',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -270,7 +224,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     right: 0,
     borderWidth: 2,
-    borderColor: '#fff',
   },
   userTextContainer: {
     flex: 1,
@@ -278,12 +231,10 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
     marginBottom: 4,
   },
   userEmail: {
     fontSize: 14,
-    color: '#666',
   },
   drawerContent: {
     flex: 1,
@@ -298,9 +249,6 @@ const styles = StyleSheet.create({
     marginVertical: 4,
     borderRadius: 8,
   },
-  drawerItemActive: {
-    backgroundColor: '#f0f8ff',
-  },
   iconContainer: {
     width: 40,
     height: 40,
@@ -308,23 +256,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-    backgroundColor: '#f8f9fa',
-  },
-  iconContainerActive: {
-    backgroundColor: '#e6f2ff',
   },
   drawerItemText: {
     fontSize: 16,
-    color: '#666',
     fontWeight: '500',
-  },
-  drawerItemTextActive: {
-    color: '#007AFF',
-    fontWeight: '600',
   },
   drawerDivider: {
     height: 1,
-    backgroundColor: '#f0f0f0',
     marginVertical: 12,
     marginHorizontal: 16,
   },
@@ -332,7 +270,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 24,
     borderRadius: 8,
-    backgroundColor: '#FFF5F5',
     overflow: 'hidden',
   },
   logoutContent: {
@@ -344,9 +281,8 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FF3B30',
     marginLeft: 12,
   },
 });
 
-export default DrawerNavigator; 
+export default DrawerNavigator;

@@ -1,32 +1,19 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput, Platform, Modal, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { DrawerScreenProps } from '../../navigation/types';
+import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerStackParamList } from '../../navigation/types';
 import { sampleProjects } from '../home/HomeScreen';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { TeamMember, Task } from '../../types/project';
+import { useTheme } from 'react-native-paper';
+import { CustomTheme } from '../../theme';
 
-type Props = DrawerScreenProps<'EditProject'>;
-type TaskStatus = 'yapilacak' | 'devam' | 'test' | 'tamamlanan';
-
-const getStatusColor = (status: string): string => {
-  switch (status) {
-    case 'yapilacak':
-      return '#FF9500';
-    case 'devam':
-      return '#007AFF';
-    case 'test':
-      return '#5856D6';
-    case 'tamamlanan':
-      return '#34C759';
-    default:
-      return '#666';
-  }
-};
+type Props = DrawerScreenProps<DrawerStackParamList, 'EditProject'>;
 
 const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
+  const theme = useTheme() as CustomTheme;
   const { projectId } = route.params;
   const project = sampleProjects.find(p => p.id === projectId);
   const [projectTitle, setProjectTitle] = useState(project?.title || 'Proje Adı');
@@ -53,7 +40,9 @@ const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
     title: task.title,
     assignee: task.assignedTo,
     startDate: new Date(),
-    dueDate: new Date()
+    dueDate: new Date(),
+    status: 'yapilacak',
+    progress: 0
   })) || []);
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -84,28 +73,6 @@ const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
       day: 'numeric',
     });
   };
-
-  if (!project) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar style="dark" />
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="arrow-back" size={24} color="#333" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Proje Düzenle</Text>
-          </View>
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>Proje bulunamadı</Text>
-          </View>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   // Ekip üyesi ekleme fonksiyonu
   const handleAddMember = () => {
@@ -154,9 +121,11 @@ const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
       const newTask: Task = {
         id: (tasks.length + 1).toString(),
         title: newTaskTitle.trim(),
-        assignee: newTaskAssignee,
+        assignee: newTaskAssignee || '',
         startDate: newTaskStartDate,
         dueDate: newTaskDueDate,
+        status: 'yapilacak',
+        progress: 0
       };
       setTasks([...tasks, newTask]);
       setNewTaskTitle('');
@@ -171,6 +140,28 @@ const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
   const handleRemoveTask = (taskId: string) => {
     setTasks(tasks.filter(task => task.id !== taskId));
   };
+
+  if (!project) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+        <StatusBar style={theme.colors.text === '#000000' ? 'dark' : 'light'} />
+        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+          <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Proje Düzenle</Text>
+          </View>
+          <View style={styles.errorContainer}>
+            <Text style={[styles.errorText, { color: theme.colors.text }]}>Proje bulunamadı</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const handleSave = () => {
     if (project) {
@@ -187,11 +178,11 @@ const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
       // Proje durumunu güncelle
       const today = new Date();
       if (today < startDate) {
-        project.status = 'yapilacak' as TaskStatus;
+        project.status = 'yapilacak' as 'yapilacak' | 'devam' | 'test' | 'tamamlanan';
       } else if (today >= startDate && today <= endDate) {
-        project.status = 'devam' as TaskStatus;
+        project.status = 'devam' as 'yapilacak' | 'devam' | 'test' | 'tamamlanan';
       } else {
-        project.status = 'tamamlanan' as TaskStatus;
+        project.status = 'tamamlanan' as 'yapilacak' | 'devam' | 'test' | 'tamamlanan';
       }
 
       // Proje ilerleme durumunu güncelle
@@ -210,135 +201,153 @@ const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
-      <View style={styles.container}>
-        <View style={styles.header}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+      <StatusBar style={theme.colors.text === '#000000' ? 'dark' : 'light'} />
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color="#333" />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Proje Düzenle</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Proje Düzenle</Text>
           <TouchableOpacity
             style={styles.saveButton}
             onPress={handleSave}
           >
-            <Text style={styles.saveButtonText}>Kaydet</Text>
+            <Text style={[styles.saveButtonText, { color: theme.colors.primary }]}>Kaydet</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView style={styles.content}>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Proje Bilgileri</Text>
-            
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Proje Adı</Text>
-              <TextInput
-                style={styles.input}
-                value={projectTitle}
-                onChangeText={setProjectTitle}
-                placeholder="Proje adını girin"
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Açıklama</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={projectDescription}
-                onChangeText={setProjectDescription}
-                placeholder="Proje açıklamasını girin"
-                multiline
-                numberOfLines={4}
-              />
-            </View>
-
-            <View style={styles.dateContainer}>
-              <View style={styles.dateInputContainer}>
-                <Text style={styles.label}>Başlangıç Tarihi</Text>
-                <TouchableOpacity
-                  style={styles.dateButton}
-                  onPress={() => setShowStartDatePicker(true)}
-                >
-                  <Text style={styles.dateButtonText}>{formatDate(startDate)}</Text>
-                  <Ionicons name="calendar-outline" size={20} color="#666" />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.dateInputContainer}>
-                <Text style={styles.label}>Bitiş Tarihi</Text>
-                <TouchableOpacity
-                  style={styles.dateButton}
-                  onPress={() => setShowEndDatePicker(true)}
-                >
-                  <Text style={styles.dateButtonText}>{formatDate(endDate)}</Text>
-                  <Ionicons name="calendar-outline" size={20} color="#666" />
-                </TouchableOpacity>
-              </View>
-            </View>
+          <View style={styles.inputContainer}>
+            <Text style={[styles.label, { color: theme.colors.text + '99' }]}>Proje Adı</Text>
+            <TextInput
+              style={[styles.input, { 
+                backgroundColor: theme.colors.surface,
+                color: theme.colors.text,
+                borderColor: theme.colors.border
+              }]}
+              value={projectTitle}
+              onChangeText={setProjectTitle}
+              placeholderTextColor={theme.colors.text + '66'}
+            />
           </View>
 
-          {/* Ekip Üyeleri Bölümü */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Ekip Üyeleri</Text>
+          <View style={styles.inputContainer}>
+            <Text style={[styles.label, { color: theme.colors.text + '99' }]}>Açıklama</Text>
+            <TextInput
+              style={[styles.input, styles.textArea, { 
+                backgroundColor: theme.colors.surface,
+                color: theme.colors.text,
+                borderColor: theme.colors.border
+              }]}
+              value={projectDescription}
+              onChangeText={setProjectDescription}
+              multiline
+              numberOfLines={4}
+              placeholderTextColor={theme.colors.text + '66'}
+            />
+          </View>
+
+          <View style={styles.dateContainer}>
+            <View style={styles.dateInputContainer}>
+              <Text style={[styles.label, { color: theme.colors.text + '99' }]}>Başlangıç Tarihi</Text>
               <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => setShowAddMemberModal(true)}
+                style={[styles.dateButton, { 
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border
+                }]}
+                onPress={() => setShowStartDatePicker(true)}
               >
-                <Ionicons name="person-add-outline" size={20} color="#007AFF" />
-                <Text style={styles.addButtonText}>Üye Ekle</Text>
+                <Text style={[styles.dateButtonText, { color: theme.colors.text }]}>
+                  {formatDate(startDate)}
+                </Text>
+                <Ionicons name="calendar-outline" size={20} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
 
-            {teamMembers.map((member) => (
-              <View key={member.id} style={styles.memberCard}>
+            <View style={styles.dateInputContainer}>
+              <Text style={[styles.label, { color: theme.colors.text + '99' }]}>Bitiş Tarihi</Text>
+              <TouchableOpacity
+                style={[styles.dateButton, { 
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border
+                }]}
+                onPress={() => setShowEndDatePicker(true)}
+              >
+                <Text style={[styles.dateButtonText, { color: theme.colors.text }]}>
+                  {formatDate(endDate)}
+                </Text>
+                <Ionicons name="calendar-outline" size={20} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Ekip Üyeleri</Text>
+              <TouchableOpacity
+                style={[styles.addButton, { backgroundColor: theme.colors.primary + '20' }]}
+                onPress={() => setShowAddMemberModal(true)}
+              >
+                <Ionicons name="add" size={24} color={theme.colors.primary} />
+              </TouchableOpacity>
+            </View>
+
+            {teamMembers.map(member => (
+              <View key={member.id} style={[styles.memberCard, { 
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border
+              }]}>
                 <View style={styles.memberInfo}>
-                  <View style={styles.memberAvatar}>
-                    <Text style={styles.memberInitials}>
-                      {member.name.split(' ').map(n => n[0]).join('')}
+                  <View style={[styles.memberAvatar, { backgroundColor: theme.colors.primary }]}>
+                    <Text style={[styles.memberInitials, { color: theme.colors.onPrimary }]}>
+                      {member.name.charAt(0)}
                     </Text>
                   </View>
                   <View style={styles.memberDetails}>
-                    <Text style={styles.memberName}>{member.name}</Text>
-                    <Text style={styles.memberRole}>{member.role}</Text>
-                    <Text style={styles.memberDepartment}>{member.department}</Text>
+                    <Text style={[styles.memberName, { color: theme.colors.text }]}>{member.name}</Text>
+                    <Text style={[styles.memberRole, { color: theme.colors.text + '99' }]}>{member.role}</Text>
+                    <Text style={[styles.memberDepartment, { color: theme.colors.primary }]}>
+                      {member.department}
+                    </Text>
                   </View>
                   <TouchableOpacity
                     style={styles.removeMemberButton}
                     onPress={() => handleRemoveMember(member.id)}
                   >
-                    <Ionicons name="close-circle-outline" size={24} color="#FF3B30" />
+                    <Ionicons name="close-circle" size={24} color={theme.colors.error} />
                   </TouchableOpacity>
                 </View>
               </View>
             ))}
           </View>
 
-          {/* Görevler Bölümü */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Görevler</Text>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Görevler</Text>
               <TouchableOpacity
-                style={styles.addButton}
+                style={[styles.addButton, { backgroundColor: theme.colors.primary + '20' }]}
                 onPress={() => setShowAddTaskModal(true)}
               >
-                <Ionicons name="add-circle-outline" size={20} color="#007AFF" />
-                <Text style={styles.addButtonText}>Görev Ekle</Text>
+                <Ionicons name="add" size={24} color={theme.colors.primary} />
               </TouchableOpacity>
             </View>
 
-            {tasks.map((task) => (
-              <View key={task.id} style={styles.taskCard}>
+            {tasks.map(task => (
+              <View key={task.id} style={[styles.taskCard, { 
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border
+              }]}>
                 <View style={styles.taskInfo}>
                   <View style={styles.taskDetails}>
-                    <Text style={styles.taskTitle}>{task.title}</Text>
-                    <Text style={styles.taskAssignee}>
-                      {task.assignee ? teamMembers.find(m => m.id === task.assignee)?.name || 'Atanmamış' : 'Atanmamış'}
+                    <Text style={[styles.taskTitle, { color: theme.colors.text }]}>{task.title}</Text>
+                    <Text style={[styles.taskAssignee, { color: theme.colors.text + '99' }]}>
+                      {teamMembers.find(m => m.id === task.assignee)?.name || 'Atanmamış'}
                     </Text>
-                    <Text style={styles.taskDueDate}>
+                    <Text style={[styles.taskDueDate, { color: theme.colors.primary }]}>
                       {formatDate(task.dueDate)}
                     </Text>
                   </View>
@@ -346,7 +355,7 @@ const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
                     style={styles.removeTaskButton}
                     onPress={() => handleRemoveTask(task.id)}
                   >
-                    <Ionicons name="close-circle-outline" size={24} color="#FF3B30" />
+                    <Ionicons name="close-circle" size={24} color={theme.colors.error} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -354,60 +363,75 @@ const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
         </ScrollView>
 
-        {/* Üye Ekleme Modalı */}
+        {/* Ekip Üyesi Ekleme Modalı */}
         <Modal
           visible={showAddMemberModal}
-          transparent={true}
-          animationType="slide"
+          transparent
+          animationType="fade"
           onRequestClose={() => setShowAddMemberModal(false)}
         >
           <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Yeni Üye Ekle</Text>
+            <View style={[styles.modalContent, { 
+              backgroundColor: theme.colors.background,
+              borderColor: theme.colors.border
+            }]}>
+              <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
+                <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Ekip Üyesi Ekle</Text>
                 <TouchableOpacity
                   style={styles.modalCloseButton}
                   onPress={() => setShowAddMemberModal(false)}
                 >
-                  <Ionicons name="close" size={24} color="#666" />
+                  <Ionicons name="close" size={24} color={theme.colors.text} />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.modalBody}>
                 <View style={styles.inputContainer}>
-                  <Text style={styles.label}>İsim Soyisim</Text>
+                  <Text style={[styles.label, { color: theme.colors.text + '99' }]}>Ad Soyad</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { 
+                      backgroundColor: theme.colors.surface,
+                      color: theme.colors.text,
+                      borderColor: theme.colors.border
+                    }]}
                     value={newMemberName}
                     onChangeText={setNewMemberName}
-                    placeholder="Üye ismini girin"
+                    placeholderTextColor={theme.colors.text + '66'}
                   />
                 </View>
 
                 <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Rol</Text>
+                  <Text style={[styles.label, { color: theme.colors.text + '99' }]}>Rol</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { 
+                      backgroundColor: theme.colors.surface,
+                      color: theme.colors.text,
+                      borderColor: theme.colors.border
+                    }]}
                     value={newMemberRole}
                     onChangeText={setNewMemberRole}
-                    placeholder="Üye rolünü girin"
+                    placeholderTextColor={theme.colors.text + '66'}
                   />
                 </View>
               </View>
 
-              <View style={styles.modalFooter}>
+              <View style={[styles.modalFooter, { borderTopColor: theme.colors.border }]}>
                 <TouchableOpacity
-                  style={[styles.modalButton, styles.modalCancelButton]}
+                  style={[styles.modalButton, styles.modalCancelButton, { 
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border
+                  }]}
                   onPress={() => setShowAddMemberModal(false)}
                 >
-                  <Text style={styles.modalButtonText}>İptal</Text>
+                  <Text style={[styles.modalButtonText, { color: theme.colors.text }]}>İptal</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.modalButton, styles.modalSaveButton]}
+                  style={[styles.modalButton, styles.modalSaveButton, { 
+                    backgroundColor: theme.colors.primary
+                  }]}
                   onPress={handleAddMember}
-                  disabled={!newMemberName.trim() || !newMemberRole.trim()}
                 >
-                  <Text style={styles.modalButtonText}>Ekle</Text>
+                  <Text style={[styles.modalButtonText, { color: theme.colors.onPrimary }]}>Ekle</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -417,49 +441,63 @@ const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* Görev Ekleme Modalı */}
         <Modal
           visible={showAddTaskModal}
-          transparent={true}
-          animationType="slide"
+          transparent
+          animationType="fade"
           onRequestClose={() => setShowAddTaskModal(false)}
         >
           <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Yeni Görev Ekle</Text>
+            <View style={[styles.modalContent, { 
+              backgroundColor: theme.colors.background,
+              borderColor: theme.colors.border
+            }]}>
+              <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
+                <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Görev Ekle</Text>
                 <TouchableOpacity
                   style={styles.modalCloseButton}
                   onPress={() => setShowAddTaskModal(false)}
                 >
-                  <Ionicons name="close" size={24} color="#666" />
+                  <Ionicons name="close" size={24} color={theme.colors.text} />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.modalBody}>
                 <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Görev Başlığı</Text>
+                  <Text style={[styles.label, { color: theme.colors.text + '99' }]}>Görev Adı</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { 
+                      backgroundColor: theme.colors.surface,
+                      color: theme.colors.text,
+                      borderColor: theme.colors.border
+                    }]}
                     value={newTaskTitle}
                     onChangeText={setNewTaskTitle}
-                    placeholder="Görev başlığını girin"
+                    placeholderTextColor={theme.colors.text + '66'}
                   />
                 </View>
 
                 <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Görevli</Text>
+                  <Text style={[styles.label, { color: theme.colors.text + '99' }]}>Sorumlu</Text>
                   <View style={styles.memberSelectContainer}>
-                    {teamMembers.map((member) => (
+                    {teamMembers.map(member => (
                       <TouchableOpacity
                         key={member.id}
                         style={[
                           styles.memberSelectButton,
-                          newTaskAssignee === member.id && styles.memberSelectButtonActive
+                          newTaskAssignee === member.id && styles.memberSelectButtonActive,
+                          { 
+                            backgroundColor: theme.colors.surface,
+                            borderColor: newTaskAssignee === member.id ? theme.colors.primary : theme.colors.border
+                          }
                         ]}
                         onPress={() => setNewTaskAssignee(member.id)}
                       >
-                        <Text style={[
-                          styles.memberSelectButtonText,
-                          newTaskAssignee === member.id && styles.memberSelectButtonTextActive
-                        ]}>
+                        <Text
+                          style={[
+                            styles.memberSelectButtonText,
+                            newTaskAssignee === member.id && styles.memberSelectButtonTextActive,
+                            { color: newTaskAssignee === member.id ? theme.colors.onPrimary : theme.colors.text }
+                          ]}
+                        >
                           {member.name}
                         </Text>
                       </TouchableOpacity>
@@ -469,120 +507,78 @@ const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
 
                 <View style={styles.dateContainer}>
                   <View style={styles.dateInputContainer}>
-                    <Text style={styles.label}>Başlangıç Tarihi</Text>
+                    <Text style={[styles.label, { color: theme.colors.text + '99' }]}>Başlangıç</Text>
                     <TouchableOpacity
-                      style={styles.dateButton}
+                      style={[styles.dateButton, { 
+                        backgroundColor: theme.colors.surface,
+                        borderColor: theme.colors.border
+                      }]}
                       onPress={() => setShowTaskStartDatePicker(true)}
                     >
-                      <Text style={styles.dateButtonText}>{formatDate(newTaskStartDate)}</Text>
-                      <Ionicons name="calendar-outline" size={20} color="#666" />
+                      <Text style={[styles.dateButtonText, { color: theme.colors.text }]}>
+                        {formatDate(newTaskStartDate)}
+                      </Text>
+                      <Ionicons name="calendar-outline" size={20} color={theme.colors.text} />
                     </TouchableOpacity>
                   </View>
 
                   <View style={styles.dateInputContainer}>
-                    <Text style={styles.label}>Bitiş Tarihi</Text>
+                    <Text style={[styles.label, { color: theme.colors.text + '99' }]}>Bitiş</Text>
                     <TouchableOpacity
-                      style={styles.dateButton}
+                      style={[styles.dateButton, { 
+                        backgroundColor: theme.colors.surface,
+                        borderColor: theme.colors.border
+                      }]}
                       onPress={() => setShowTaskDueDatePicker(true)}
                     >
-                      <Text style={styles.dateButtonText}>{formatDate(newTaskDueDate)}</Text>
-                      <Ionicons name="calendar-outline" size={20} color="#666" />
+                      <Text style={[styles.dateButtonText, { color: theme.colors.text }]}>
+                        {formatDate(newTaskDueDate)}
+                      </Text>
+                      <Ionicons name="calendar-outline" size={20} color={theme.colors.text} />
                     </TouchableOpacity>
                   </View>
                 </View>
               </View>
 
-              <View style={styles.modalFooter}>
+              <View style={[styles.modalFooter, { borderTopColor: theme.colors.border }]}>
                 <TouchableOpacity
-                  style={[styles.modalButton, styles.modalCancelButton]}
+                  style={[styles.modalButton, styles.modalCancelButton, { 
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border
+                  }]}
                   onPress={() => setShowAddTaskModal(false)}
                 >
-                  <Text style={[styles.modalButtonText, { color: '#666' }]}>İptal</Text>
+                  <Text style={[styles.modalButtonText, { color: theme.colors.text }]}>İptal</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.modalButton, styles.modalSaveButton]}
+                  style={[styles.modalButton, styles.modalSaveButton, { 
+                    backgroundColor: theme.colors.primary
+                  }]}
                   onPress={handleAddTask}
-                  disabled={!newTaskTitle.trim()}
                 >
-                  <Text style={styles.modalButtonText}>Ekle</Text>
+                  <Text style={[styles.modalButtonText, { color: theme.colors.onPrimary }]}>Ekle</Text>
                 </TouchableOpacity>
               </View>
             </View>
           </View>
         </Modal>
 
-        {/* Tarih Seçici Modalları */}
-        {Platform.OS === 'ios' && (
-          <>
-            <Modal
-              visible={showStartDatePicker}
-              transparent={true}
-              animationType="slide"
-            >
-              <View style={styles.modalContainer}>
-                <View style={styles.modalContent}>
-                  <DateTimePicker
-                    value={startDate}
-                    mode="date"
-                    display="spinner"
-                    onChange={handleStartDateChange}
-                    minimumDate={new Date()}
-                  />
-                  <TouchableOpacity
-                    style={styles.modalButton}
-                    onPress={() => setShowStartDatePicker(false)}
-                  >
-                    <Text style={styles.modalButtonText}>Tamam</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </Modal>
-
-            <Modal
-              visible={showEndDatePicker}
-              transparent={true}
-              animationType="slide"
-            >
-              <View style={styles.modalContainer}>
-                <View style={styles.modalContent}>
-                  <DateTimePicker
-                    value={endDate}
-                    mode="date"
-                    display="spinner"
-                    onChange={handleEndDateChange}
-                    minimumDate={startDate}
-                  />
-                  <TouchableOpacity
-                    style={styles.modalButton}
-                    onPress={() => setShowEndDatePicker(false)}
-                  >
-                    <Text style={styles.modalButtonText}>Tamam</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </Modal>
-          </>
+        {showStartDatePicker && (
+          <DateTimePicker
+            value={startDate}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={handleStartDateChange}
+          />
         )}
 
-        {Platform.OS === 'android' && (
-          <>
-            {showStartDatePicker && (
-              <DateTimePicker
-                value={startDate}
-                mode="date"
-                onChange={handleStartDateChange}
-                minimumDate={new Date()}
-              />
-            )}
-            {showEndDatePicker && (
-              <DateTimePicker
-                value={endDate}
-                mode="date"
-                onChange={handleEndDateChange}
-                minimumDate={startDate}
-              />
-            )}
-          </>
+        {showEndDatePicker && (
+          <DateTimePicker
+            value={endDate}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={handleEndDateChange}
+          />
         )}
 
         {showTaskStartDatePicker && (
@@ -591,7 +587,6 @@ const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
             mode="date"
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
             onChange={handleTaskStartDateChange}
-            minimumDate={new Date()}
           />
         )}
 
@@ -601,7 +596,6 @@ const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
             mode="date"
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
             onChange={handleTaskDueDateChange}
-            minimumDate={newTaskStartDate}
           />
         )}
       </View>
@@ -612,7 +606,6 @@ const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   container: {
     flex: 1,
@@ -623,7 +616,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
     marginTop: 20,
   },
   backButton: {
@@ -632,55 +624,80 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#333',
     flex: 1,
   },
   saveButton: {
-    padding: 8,
+    marginLeft: 15,
   },
   saveButtonText: {
     fontSize: 16,
-    color: '#007AFF',
     fontWeight: '600',
   },
   content: {
     flex: 1,
     padding: 20,
   },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  input: {
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    borderWidth: 1,
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  dateInputContainer: {
+    flex: 1,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  dateButtonText: {
+    fontSize: 16,
+    marginRight: 4,
+  },
   section: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   sectionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
   },
   addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E3F2FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    width: 40,
+    height: 40,
     borderRadius: 20,
-  },
-  addButtonText: {
-    color: '#007AFF',
-    marginLeft: 4,
-    fontWeight: '500',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   memberCard: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E1E1E1',
   },
   memberInfo: {
     flexDirection: 'row',
@@ -690,12 +707,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#007AFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   memberInitials: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -706,16 +721,13 @@ const styles = StyleSheet.create({
   memberName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
   },
   memberRole: {
     fontSize: 14,
-    color: '#666',
     marginTop: 2,
   },
   memberDepartment: {
     fontSize: 12,
-    color: '#007AFF',
     marginTop: 2,
     fontWeight: '500',
   },
@@ -729,10 +741,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     width: '90%',
     maxHeight: '80%',
+    borderWidth: 1,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -740,12 +752,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E1E1E1',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
   },
   modalCloseButton: {
     padding: 4,
@@ -757,7 +767,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E1E1E1',
     gap: 8,
   },
   modalButton: {
@@ -765,111 +774,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
+    borderWidth: 1,
   },
   modalCancelButton: {
-    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
   },
   modalSaveButton: {
-    backgroundColor: '#007AFF',
+    borderWidth: 0,
   },
   modalButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
-  },
-  memberSelectItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E1E1E1',
-  },
-  memberSelectInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#333',
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  dateContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  dateInputContainer: {
-    flex: 1,
-  },
-  dateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    padding: 12,
-    borderRadius: 8,
-  },
-  dateButtonText: {
-    color: '#333',
-    fontSize: 16,
-    marginRight: 4,
-  },
-  taskCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E1E1E1',
-  },
-  taskInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  taskDetails: {
-    flex: 1,
-  },
-  taskTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  taskAssignee: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 2,
-  },
-  taskDueDate: {
-    fontSize: 12,
-    color: '#007AFF',
-  },
-  removeTaskButton: {
-    padding: 4,
   },
   memberSelectContainer: {
     flexDirection: 'row',
@@ -881,21 +796,55 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: '#F8F9FA',
     borderWidth: 1,
-    borderColor: '#E1E1E1',
   },
   memberSelectButtonActive: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    borderWidth: 0,
   },
   memberSelectButtonText: {
     fontSize: 14,
-    color: '#333',
   },
   memberSelectButtonTextActive: {
-    color: '#fff',
+    fontWeight: '500',
+  },
+  taskCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  taskInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  taskDetails: {
+    flex: 1,
+  },
+  taskTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  taskAssignee: {
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  taskDueDate: {
+    fontSize: 12,
+  },
+  removeTaskButton: {
+    padding: 4,
+  },
+  errorContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
   },
 });
 
-export default EditProjectScreen; 
+export default EditProjectScreen;

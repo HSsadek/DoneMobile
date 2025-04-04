@@ -4,8 +4,9 @@ import { StatusBar } from 'expo-status-bar';
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerStackParamList } from '../../navigation/types';
-import { Button } from 'react-native-paper';
+import { Button, useTheme, FAB } from 'react-native-paper';
 import { TeamMember } from '../../types/project';
+import { CustomTheme } from '../../theme';
 
 type Props = DrawerScreenProps<DrawerStackParamList, 'Home'>;
 
@@ -201,8 +202,23 @@ export const sampleProjects: Array<{
 ];
 
 const HomeScreen = ({ navigation }: Props) => {
-  const [activeStatus, setActiveStatus] = useState<TaskStatus>('yapilacak');
-  const [projects, setProjects] = useState(sampleProjects);
+  const [selectedStatus, setSelectedStatus] = useState<TaskStatus>('yapilacak');
+  const theme = useTheme() as CustomTheme;
+
+  const getStatusColor = (status: TaskStatus) => {
+    switch (status) {
+      case 'yapilacak':
+        return theme.colors.primary;
+      case 'devam':
+        return theme.colors.secondary;
+      case 'test':
+        return theme.colors.tertiary;
+      case 'tamamlanan':
+        return theme.colors.primary;
+      default:
+        return theme.colors.primary;
+    }
+  };
 
   const statusItems: { id: TaskStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
     { id: 'yapilacak', label: 'Yapılacak', icon: 'time-outline' },
@@ -211,27 +227,12 @@ const HomeScreen = ({ navigation }: Props) => {
     { id: 'tamamlanan', label: 'Tamamlanan', icon: 'checkmark-done-circle-outline' },
   ];
 
-  const getStatusColor = (status: TaskStatus) => {
-    switch (status) {
-      case 'yapilacak':
-        return '#FF9500';
-      case 'devam':
-        return '#007AFF';
-      case 'test':
-        return '#5856D6';
-      case 'tamamlanan':
-        return '#34C759';
-      default:
-        return '#8E8E93';
-    }
-  };
-
   // Projeyi bir sonraki aşamaya taşıma fonksiyonu
   const moveToNextStage = (projectId: string) => {
-    const projectIndex = projects.findIndex(p => p.id === projectId);
+    const projectIndex = sampleProjects.findIndex(p => p.id === projectId);
     if (projectIndex === -1) return;
 
-    const project = projects[projectIndex];
+    const project = sampleProjects[projectIndex];
     let nextStatus: TaskStatus;
 
     // Mevcut duruma göre bir sonraki durumu belirle
@@ -246,25 +247,26 @@ const HomeScreen = ({ navigation }: Props) => {
         nextStatus = 'tamamlanan';
         break;
       default:
-        return; // Tamamlanan projeler için bir sonraki aşama yok
+        return;
     }
 
     // Projeyi güncelle
-    const updatedProjects = [...projects];
+    const updatedProjects = [...sampleProjects];
     updatedProjects[projectIndex] = {
       ...project,
       status: nextStatus,
     };
 
-    setProjects(updatedProjects);
+    // State'i güncelle
+    setSelectedStatus(nextStatus);
   };
 
   // Projeyi bir önceki aşamaya taşıma fonksiyonu
   const moveToPreviousStage = (projectId: string) => {
-    const projectIndex = projects.findIndex(p => p.id === projectId);
+    const projectIndex = sampleProjects.findIndex(p => p.id === projectId);
     if (projectIndex === -1) return;
 
-    const project = projects[projectIndex];
+    const project = sampleProjects[projectIndex];
     let previousStatus: TaskStatus;
 
     // Mevcut duruma göre bir önceki durumu belirle
@@ -279,17 +281,18 @@ const HomeScreen = ({ navigation }: Props) => {
         previousStatus = 'yapilacak';
         break;
       default:
-        return; // Yapılacak projeler için bir önceki aşama yok
+        return;
     }
 
     // Projeyi güncelle
-    const updatedProjects = [...projects];
+    const updatedProjects = [...sampleProjects];
     updatedProjects[projectIndex] = {
       ...project,
       status: previousStatus,
     };
 
-    setProjects(updatedProjects);
+    // State'i güncelle
+    setSelectedStatus(previousStatus);
   };
 
   // Bir sonraki aşama butonunun metnini belirle
@@ -320,54 +323,75 @@ const HomeScreen = ({ navigation }: Props) => {
     }
   };
 
-  const filteredProjects = projects.filter(project => project.status === activeStatus);
+  const filteredProjects = sampleProjects.filter(project => project.status === selectedStatus);
+
+  const handleNewProject = () => {
+    navigation.navigate('NewProject');
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+      <StatusBar style={theme.colors.text === '#000000' ? 'dark' : 'light'} />
       <View style={styles.container}>
-        <View style={styles.header}>
+        <View style={[styles.header, { 
+          backgroundColor: theme.colors.surface,
+          borderBottomColor: theme.colors.border 
+        }]}>
           <TouchableOpacity
             style={styles.menuButton}
             onPress={() => navigation.openDrawer()}
           >
-            <Ionicons name="menu" size={24} color="#333" />
+            <Ionicons name="menu-outline" size={28} color={theme.colors.text} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.title}>Projelerim</Text>
+            <Text style={[styles.title, { color: theme.colors.text }]}>Projelerim</Text>
           </View>
         </View>
 
-        <View style={styles.statusContainer}>
-          <ScrollView 
-            horizontal 
+        <View style={[styles.statusContainer, { 
+          backgroundColor: theme.colors.surface,
+          borderBottomColor: theme.colors.border 
+        }]}>
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.statusBar}
+            style={styles.statusBar}
           >
-            {statusItems.map((item) => (
+            {(['yapilacak', 'devam', 'test', 'tamamlanan'] as TaskStatus[]).map((status) => (
               <TouchableOpacity
-                key={item.id}
+                key={status}
                 style={[
                   styles.statusItem,
-                  activeStatus === item.id && styles.statusItemActive
+                  { backgroundColor: theme.colors.surface },
+                  selectedStatus === status && { backgroundColor: theme.colors.primary }
                 ]}
-                onPress={() => setActiveStatus(item.id)}
+                onPress={() => setSelectedStatus(status)}
               >
                 <View style={[
                   styles.iconContainer,
-                  activeStatus === item.id && styles.iconContainerActive
+                  { backgroundColor: theme.colors.background },
+                  selectedStatus === status && { backgroundColor: 'rgba(255, 255, 255, 0.2)' }
                 ]}>
-                  <Ionicons 
-                    name={item.icon} 
-                    size={20} 
-                    color={activeStatus === item.id ? '#fff' : '#007AFF'} 
+                  <Ionicons
+                    name={
+                      status === 'yapilacak'
+                        ? 'list-outline'
+                        : status === 'devam'
+                        ? 'time-outline'
+                        : status === 'test'
+                        ? 'flask-outline'
+                        : 'checkmark-circle-outline'
+                    }
+                    size={18}
+                    color={selectedStatus === status ? theme.colors.onPrimary : theme.colors.text}
                   />
                 </View>
                 <Text style={[
                   styles.statusText,
-                  activeStatus === item.id && styles.statusTextActive
+                  { color: theme.colors.text },
+                  selectedStatus === status && { color: theme.colors.onPrimary }
                 ]}>
-                  {item.label}
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -375,81 +399,107 @@ const HomeScreen = ({ navigation }: Props) => {
         </View>
 
         <ScrollView style={styles.contentContainer}>
-          <Text style={styles.contentTitle}>
-            {statusItems.find(item => item.id === activeStatus)?.label} Görevler
+          <Text style={[styles.contentTitle, { color: theme.colors.text }]}>
+            {selectedStatus.charAt(0).toUpperCase() + selectedStatus.slice(1)} Projeler
           </Text>
-          
-          {filteredProjects.length > 0 ? (
-            filteredProjects.map((project) => (
-              <View key={project.id} style={styles.projectCard}>
-                <TouchableOpacity 
-                  onPress={() => navigation.navigate('ProjectDetail', { projectId: project.id })}
-                >
-                  <View style={styles.projectHeader}>
-                    <Text style={styles.projectTitle}>{project.title}</Text>
-                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(project.status) }]}>
-                      <Text style={styles.statusBadgeText}>
-                        {statusItems.find(item => item.id === project.status)?.label}
+          {sampleProjects.filter(project => project.status === selectedStatus).length > 0 ? (
+            sampleProjects
+              .filter(project => project.status === selectedStatus)
+              .map(project => (
+                <View key={project.id} style={[styles.projectCard, { 
+                  backgroundColor: theme.colors.surface,
+                  shadowColor: theme.colors.shadow
+                }]}>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('ProjectDetail', { projectId: project.id })}
+                  >
+                    <View style={styles.projectHeader}>
+                      <Text style={[styles.projectTitle, { color: theme.colors.text }]}>
+                        {project.title}
                       </Text>
-                    </View>
-                  </View>
-                  <Text style={styles.projectDescription}>{project.description}</Text>
-                  <View style={styles.projectFooter}>
-                    <View style={styles.progressContainer}>
-                      <View style={[styles.progressBar, { width: `${project.progress}%` }]} />
-                      <Text style={styles.progressText}>{project.progress}%</Text>
-                    </View>
-                    <View style={styles.projectStats}>
-                      <View style={styles.statItem}>
-                        <Ionicons name="list-outline" size={16} color="#666" />
-                        <Text style={styles.statText}>{project.tasks} Görev</Text>
-                      </View>
-                      <View style={styles.statItem}>
-                        <Ionicons name="people-outline" size={16} color="#666" />
-                        <Text style={styles.statText}>{project.members} Üye</Text>
+                      <View style={[styles.statusBadge, { backgroundColor: getStatusColor(project.status) }]}>
+                        <Text style={[styles.statusBadgeText, { color: theme.colors.onPrimary }]}>
+                          {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+                        </Text>
                       </View>
                     </View>
-                  </View>
-                </TouchableOpacity>
-                
-                <View style={styles.navigationButtonsContainer}>
-                  {project.status !== 'yapilacak' && (
-                    <Button 
-                      mode="outlined" 
-                      onPress={() => moveToPreviousStage(project.id)}
-                      style={styles.navigationButton}
-                      contentStyle={styles.navigationButtonContent}
-                      icon={({ size, color }) => (
-                        <Ionicons name="arrow-back" size={size} color={color} />
-                      )}
-                    >
-                      {getPreviousStageButtonText(project.status)}
-                    </Button>
-                  )}
-                  
-                  {project.status !== 'tamamlanan' && (
-                    <Button 
-                      mode="contained" 
-                      onPress={() => moveToNextStage(project.id)}
-                      style={[styles.navigationButton, styles.nextButton]}
-                      contentStyle={styles.navigationButtonContent}
-                      icon={({ size, color }) => (
-                        <Ionicons name="arrow-forward" size={size} color={color} />
-                      )}
-                    >
-                      {getNextStageButtonText(project.status)}
-                    </Button>
-                  )}
+                    <Text style={[styles.projectDescription, { color: theme.colors.text + '99' }]}>
+                      {project.description}
+                    </Text>
+                    <View style={styles.projectFooter}>
+                      <Text style={[styles.progressText, { color: theme.colors.text + '99' }]}>
+                        İlerleme ({project.progress}%)
+                      </Text>
+                      <View style={[styles.progressContainer, { backgroundColor: theme.colors.border }]}>
+                        <View
+                          style={[
+                            styles.progressBar,
+                            { backgroundColor: getStatusColor(project.status), width: `${project.progress}%` }
+                          ]}
+                        />
+                      </View>
+                      <View style={styles.projectStats}>
+                        <View style={styles.statItem}>
+                          <Ionicons name="list-outline" size={16} color={theme.colors.text + '99'} />
+                          <Text style={[styles.statText, { color: theme.colors.text + '99' }]}>
+                            {project.tasks} Görev
+                          </Text>
+                        </View>
+                        <View style={styles.statItem}>
+                          <Ionicons name="people-outline" size={16} color={theme.colors.text + '99'} />
+                          <Text style={[styles.statText, { color: theme.colors.text + '99' }]}>
+                            {project.members} Üye
+                          </Text>
+                        </View>
+                        <View style={styles.statItem}>
+                          <Ionicons name="calendar-outline" size={16} color={theme.colors.text + '99'} />
+                          <Text style={[styles.statText, { color: theme.colors.text + '99' }]}>
+                            {project.endDate}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.navigationButtonsContainer}>
+                        {project.status !== 'yapilacak' && (
+                          <Button
+                            mode="outlined"
+                            style={[styles.navigationButton, { borderColor: theme.colors.primary }]}
+                            contentStyle={styles.navigationButtonContent}
+                            textColor={theme.colors.primary}
+                            onPress={() => moveToPreviousStage(project.id)}
+                          >
+                            {getPreviousStageButtonText(project.status)}
+                          </Button>
+                        )}
+                        {project.status !== 'tamamlanan' && (
+                          <Button
+                            mode="contained"
+                            style={[styles.navigationButton, styles.nextButton]}
+                            contentStyle={styles.navigationButtonContent}
+                            onPress={() => moveToNextStage(project.id)}
+                          >
+                            {getNextStageButtonText(project.status)}
+                          </Button>
+                        )}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
                 </View>
-              </View>
-            ))
+              ))
           ) : (
             <View style={styles.emptyState}>
-              <Ionicons name="list-outline" size={48} color="#ccc" />
-              <Text style={styles.emptyStateText}>Bu kategoride proje bulunmuyor</Text>
+              <Ionicons name="list-outline" size={48} color={theme.colors.text + '33'} />
+              <Text style={[styles.emptyStateText, { color: theme.colors.text + '66' }]}>
+                Bu kategoride proje bulunmuyor
+              </Text>
             </View>
           )}
         </ScrollView>
+        <FAB
+          icon="plus"
+          style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+          onPress={handleNewProject}
+          color={theme.colors.onPrimary}
+        />
       </View>
     </SafeAreaView>
   );
@@ -458,7 +508,6 @@ const HomeScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
     paddingTop: 20,
   },
   container: {
@@ -470,9 +519,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 15,
     paddingBottom: 15,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   menuButton: {
     marginRight: 15,
@@ -484,13 +531,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 4,
   },
   statusContainer: {
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   statusBar: {
     paddingHorizontal: 20,
@@ -503,30 +547,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginRight: 12,
     borderRadius: 25,
-    backgroundColor: '#f8f9fa',
-  },
-  statusItemActive: {
-    backgroundColor: '#007AFF',
   },
   iconContainer: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
   },
-  iconContainerActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
   statusText: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#333',
-  },
-  statusTextActive: {
-    color: '#fff',
   },
   contentContainer: {
     flex: 1,
@@ -535,15 +567,12 @@ const styles = StyleSheet.create({
   contentTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#333',
     marginBottom: 20,
   },
   projectCard: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -561,7 +590,6 @@ const styles = StyleSheet.create({
   projectTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
     flex: 1,
   },
   statusBadge: {
@@ -571,13 +599,11 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   statusBadgeText: {
-    color: '#fff',
     fontSize: 12,
     fontWeight: '500',
   },
   projectDescription: {
     fontSize: 14,
-    color: '#666',
     marginBottom: 12,
   },
   projectFooter: {
@@ -585,19 +611,16 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     height: 6,
-    backgroundColor: '#f0f0f0',
     borderRadius: 3,
     marginBottom: 12,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#007AFF',
     borderRadius: 3,
   },
   progressText: {
     fontSize: 12,
-    color: '#666',
     marginBottom: 8,
   },
   projectStats: {
@@ -610,7 +633,6 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 12,
-    color: '#666',
     marginLeft: 4,
   },
   emptyState: {
@@ -621,7 +643,6 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    color: '#999',
     marginTop: 12,
   },
   navigationButtonsContainer: {
@@ -640,6 +661,12 @@ const styles = StyleSheet.create({
   navigationButtonContent: {
     paddingVertical: 6,
   },
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 0,
+  },
 });
 
-export default HomeScreen; 
+export default HomeScreen;
