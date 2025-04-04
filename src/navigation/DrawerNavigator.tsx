@@ -1,5 +1,5 @@
 import React from 'react';
-import { createDrawerNavigator } from '@react-navigation/drawer';
+import { createDrawerNavigator, DrawerContentComponentProps } from '@react-navigation/drawer';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/home/HomeScreen';
@@ -14,7 +14,7 @@ import type { DrawerStackParamList } from './types';
 
 const Drawer = createDrawerNavigator<DrawerStackParamList>();
 
-const CustomDrawerContent = (props: any) => {
+const CustomDrawerContent = (props: DrawerContentComponentProps) => {
   return (
     <SafeAreaView style={styles.drawerContainer}>
       <View style={styles.drawerHeader}>
@@ -132,7 +132,7 @@ const CustomDrawerContent = (props: any) => {
 const DrawerNavigator = () => {
   return (
     <Drawer.Navigator
-      drawerContent={(props) => <CustomDrawerContent {...props} />}
+      drawerContent={(props: DrawerContentComponentProps) => <CustomDrawerContent {...props} />}
       screenOptions={{
         headerShown: false,
         drawerStyle: {
@@ -145,37 +145,87 @@ const DrawerNavigator = () => {
         },
         drawerActiveTintColor: '#007AFF',
         drawerInactiveTintColor: '#666',
+        drawerType: 'slide',
+        overlayColor: 'rgba(0,0,0,0.7)',
+        swipeEdgeWidth: 100,
+        swipeMinDistance: 100,
+        sceneContainerStyle: {
+          shadowColor: '#000',
+          shadowOffset: {
+            width: -2,
+            height: 0,
+          },
+          shadowOpacity: 0.15,
+          shadowRadius: 5,
+        },
+        gestureEnabled: true,
+        swipeEnabled: false
       }}
     >
-      <Drawer.Screen name="Home" component={HomeScreen} />
+      <Drawer.Screen 
+        name="Home" 
+        component={HomeScreen}
+        options={{
+          swipeEnabled: true
+        }}
+      />
       <Drawer.Screen 
         name="ProjectDetail" 
-        component={ProjectDetailScreen as any}
+        component={ProjectDetailScreen}
         options={{
           drawerItemStyle: { display: 'none' },
-          unmountOnBlur: true
+          unmountOnBlur: true,
+          swipeEnabled: false
         }}
       />
       <Drawer.Screen 
         name="EditProject" 
-        component={EditProjectScreen as any}
+        component={EditProjectScreen}
         options={{
           drawerItemStyle: { display: 'none' },
-          unmountOnBlur: true
+          unmountOnBlur: true,
+          swipeEnabled: false
         }}
       />
       <Drawer.Screen 
         name="NewProject" 
-        component={NewProjectScreen as any}
+        component={NewProjectScreen}
         options={{
           drawerItemStyle: { display: 'none' },
-          unmountOnBlur: true
+          unmountOnBlur: true,
+          swipeEnabled: false
         }}
       />
-      <Drawer.Screen name="Settings" component={SettingsScreen} />
-      <Drawer.Screen name="Profile" component={ProfileScreen} />
-      <Drawer.Screen name="Help" component={HelpScreen} />
-      <Drawer.Screen name="Logout" component={LogoutScreen as any} />
+      <Drawer.Screen 
+        name="Settings" 
+        component={SettingsScreen}
+        options={{
+          swipeEnabled: true
+        }}
+      />
+      <Drawer.Screen 
+        name="Profile" 
+        component={ProfileScreen}
+        options={{
+          swipeEnabled: true
+        }}
+      />
+      <Drawer.Screen 
+        name="Help" 
+        component={HelpScreen}
+        options={{
+          swipeEnabled: true
+        }}
+      />
+      <Drawer.Screen 
+        name="Logout" 
+        component={LogoutScreen}
+        options={{
+          drawerItemStyle: { display: 'none' },
+          unmountOnBlur: true,
+          swipeEnabled: false
+        }}
+      />
     </Drawer.Navigator>
   );
 };

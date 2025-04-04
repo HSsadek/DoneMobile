@@ -5,6 +5,7 @@ import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerStackParamList } from '../../navigation/types';
 import { Button } from 'react-native-paper';
+import { TeamMember } from '../../types/project';
 
 type Props = DrawerScreenProps<DrawerStackParamList, 'Home'>;
 
@@ -13,23 +14,41 @@ export type TaskStatus = 'yapilacak' | 'devam' | 'test' | 'tamamlanan';
 const { width } = Dimensions.get('window');
 
 // Örnek proje verileri
-export const sampleProjects = [
+export const sampleProjects: Array<{
+  id: string;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  progress: number;
+  tasks: number;
+  members: number;
+  startDate: string;
+  endDate: string;
+  team: TeamMember[];
+  recentTasks: Array<{
+    id: string;
+    title: string;
+    status: string;
+    assignedTo: string;
+    progress: number;
+  }>;
+}> = [
   {
     id: '1',
     title: 'E-ticaret Uygulaması',
     description: 'Online alışveriş platformu geliştirme projesi',
-    status: 'devam' as TaskStatus,
+    status: 'devam',
     progress: 65,
     tasks: 12,
     members: 5,
     startDate: '2024-01-15',
     endDate: '2024-06-30',
     team: [
-      { id: '1', name: 'Ahmet Yılmaz', role: 'Proje Yöneticisi' },
-      { id: '2', name: 'Ayşe Demir', role: 'Frontend Geliştirici' },
-      { id: '3', name: 'Mehmet Kaya', role: 'Backend Geliştirici' },
-      { id: '4', name: 'Zeynep Şahin', role: 'UI/UX Tasarımcı' },
-      { id: '5', name: 'Can Özkan', role: 'Test Mühendisi' },
+      { id: '1', name: 'Ahmet Yılmaz', role: 'Proje Yöneticisi', department: 'Yönetim' },
+      { id: '2', name: 'Ayşe Demir', role: 'Frontend Geliştirici', department: 'Yazılım' },
+      { id: '3', name: 'Mehmet Kaya', role: 'Backend Geliştirici', department: 'Yazılım' },
+      { id: '4', name: 'Zeynep Şahin', role: 'UI/UX Tasarımcı', department: 'Tasarım' },
+      { id: '5', name: 'Can Özkan', role: 'Test Mühendisi', department: 'Test' },
     ],
     recentTasks: [
       { id: '1', title: 'Kullanıcı arayüzü tasarımı', status: 'tamamlandi', assignedTo: '4', progress: 100 },
@@ -48,9 +67,9 @@ export const sampleProjects = [
     startDate: '2024-02-01',
     endDate: '2024-08-15',
     team: [
-      { id: '1', name: 'Ali Yıldız', role: 'Proje Yöneticisi' },
-      { id: '2', name: 'Fatma Kaya', role: 'Mobil Geliştirici' },
-      { id: '3', name: 'Murat Demir', role: 'Backend Geliştirici' },
+      { id: '1', name: 'Ali Yıldız', role: 'Proje Yöneticisi', department: 'Yönetim' },
+      { id: '2', name: 'Fatma Kaya', role: 'Mobil Geliştirici', department: 'Yazılım' },
+      { id: '3', name: 'Murat Demir', role: 'Backend Geliştirici', department: 'Yazılım' },
     ],
     recentTasks: [
       { id: '1', title: 'Proje planlaması', status: 'beklemede', assignedTo: '1', progress: 0 },
@@ -68,12 +87,12 @@ export const sampleProjects = [
     startDate: '2023-11-01',
     endDate: '2024-03-30',
     team: [
-      { id: '1', name: 'Ayşe Yılmaz', role: 'Proje Yöneticisi' },
-      { id: '2', name: 'Mehmet Demir', role: 'Frontend Geliştirici' },
-      { id: '3', name: 'Can Kaya', role: 'Backend Geliştirici' },
-      { id: '4', name: 'Zeynep Şahin', role: 'UI/UX Tasarımcı' },
-      { id: '5', name: 'Ali Özkan', role: 'Test Mühendisi' },
-      { id: '6', name: 'Fatma Yıldız', role: 'Veri Analisti' },
+      { id: '1', name: 'Ayşe Yılmaz', role: 'Proje Yöneticisi', department: 'Yönetim' },
+      { id: '2', name: 'Mehmet Demir', role: 'Frontend Geliştirici', department: 'Yazılım' },
+      { id: '3', name: 'Can Kaya', role: 'Backend Geliştirici', department: 'Yazılım' },
+      { id: '4', name: 'Zeynep Şahin', role: 'UI/UX Tasarımcı', department: 'Tasarım' },
+      { id: '5', name: 'Ali Özkan', role: 'Test Mühendisi', department: 'Test' },
+      { id: '6', name: 'Fatma Yıldız', role: 'Veri Analisti', department: 'Analiz' },
     ],
     recentTasks: [
       { id: '1', title: 'Kullanıcı testleri', status: 'devam', assignedTo: '5', progress: 60 },
@@ -92,19 +111,91 @@ export const sampleProjects = [
     startDate: '2023-06-01',
     endDate: '2024-01-15',
     team: [
-      { id: '1', name: 'Ahmet Demir', role: 'Proje Yöneticisi' },
-      { id: '2', name: 'Ayşe Kaya', role: 'Frontend Geliştirici' },
-      { id: '3', name: 'Mehmet Yılmaz', role: 'Backend Geliştirici' },
-      { id: '4', name: 'Zeynep Özkan', role: 'UI/UX Tasarımcı' },
-      { id: '5', name: 'Can Şahin', role: 'Test Mühendisi' },
-      { id: '6', name: 'Ali Yıldız', role: 'DevOps Mühendisi' },
-      { id: '7', name: 'Fatma Demir', role: 'Veri Analisti' },
-      { id: '8', name: 'Murat Kaya', role: 'Güvenlik Uzmanı' },
+      { id: '1', name: 'Ahmet Demir', role: 'Proje Yöneticisi', department: 'Yönetim' },
+      { id: '2', name: 'Ayşe Kaya', role: 'Frontend Geliştirici', department: 'Yazılım' },
+      { id: '3', name: 'Mehmet Yılmaz', role: 'Backend Geliştirici', department: 'Yazılım' },
+      { id: '4', name: 'Zeynep Özkan', role: 'UI/UX Tasarımcı', department: 'Tasarım' },
+      { id: '5', name: 'Can Şahin', role: 'Test Mühendisi', department: 'Test' },
+      { id: '6', name: 'Ali Yıldız', role: 'DevOps Mühendisi', department: 'Operasyon' },
+      { id: '7', name: 'Fatma Demir', role: 'Veri Analisti', department: 'Analiz' },
+      { id: '8', name: 'Murat Kaya', role: 'Güvenlik Uzmanı', department: 'Güvenlik' },
     ],
     recentTasks: [
       { id: '1', title: 'Son kullanıcı testleri', status: 'tamamlandi', assignedTo: '5', progress: 100 },
       { id: '2', title: 'Dokümantasyon', status: 'tamamlandi', assignedTo: '7', progress: 100 },
       { id: '3', title: 'Canlıya alma', status: 'tamamlandi', assignedTo: '6', progress: 100 },
+    ],
+  },
+  {
+    id: '5',
+    title: 'Akıllı Ev Otomasyonu',
+    description: 'IoT tabanlı ev otomasyon sistemi',
+    status: 'yapilacak' as TaskStatus,
+    progress: 15,
+    tasks: 18,
+    members: 7,
+    startDate: '2024-03-01',
+    endDate: '2024-09-30',
+    team: [
+      { id: '1', name: 'Emre Yıldırım', role: 'Proje Yöneticisi', department: 'Yönetim' },
+      { id: '2', name: 'Selin Arslan', role: 'IoT Uzmanı', department: 'IoT' },
+      { id: '3', name: 'Burak Aydın', role: 'Mobil Geliştirici', department: 'Yazılım' },
+      { id: '4', name: 'Deniz Şahin', role: 'Backend Geliştirici', department: 'Yazılım' },
+      { id: '5', name: 'Elif Demir', role: 'UI/UX Tasarımcı', department: 'Tasarım' },
+      { id: '6', name: 'Onur Kaya', role: 'Elektronik Mühendisi', department: 'Donanım' },
+      { id: '7', name: 'Merve Çelik', role: 'Test Mühendisi', department: 'Test' },
+    ],
+    recentTasks: [
+      { id: '1', title: 'Sistem mimarisi tasarımı', status: 'devam', assignedTo: '2', progress: 40 },
+      { id: '2', title: 'Sensör entegrasyonu', status: 'beklemede', assignedTo: '6', progress: 0 },
+      { id: '3', title: 'Mobil uygulama arayüzü', status: 'devam', assignedTo: '5', progress: 25 },
+    ],
+  },
+  {
+    id: '6',
+    title: 'Online Eğitim Platformu',
+    description: 'Uzaktan eğitim ve kurs yönetim sistemi',
+    status: 'devam' as TaskStatus,
+    progress: 45,
+    tasks: 16,
+    members: 6,
+    startDate: '2024-02-15',
+    endDate: '2024-07-30',
+    team: [
+      { id: '1', name: 'Canan Yılmaz', role: 'Proje Yöneticisi', department: 'Yönetim' },
+      { id: '2', name: 'Serkan Demir', role: 'Frontend Geliştirici', department: 'Yazılım' },
+      { id: '3', name: 'Aylin Kaya', role: 'Backend Geliştirici', department: 'Yazılım' },
+      { id: '4', name: 'Tolga Şahin', role: 'UI/UX Tasarımcı', department: 'Tasarım' },
+      { id: '5', name: 'Pınar Arslan', role: 'İçerik Yöneticisi', department: 'İçerik' },
+      { id: '6', name: 'Mert Özkan', role: 'Test Mühendisi', department: 'Test' },
+    ],
+    recentTasks: [
+      { id: '1', title: 'Video streaming altyapısı', status: 'devam', assignedTo: '3', progress: 60 },
+      { id: '2', title: 'Kullanıcı dashboard tasarımı', status: 'tamamlandi', assignedTo: '4', progress: 100 },
+      { id: '3', title: 'Ödeme sistemi entegrasyonu', status: 'beklemede', assignedTo: '2', progress: 0 },
+    ],
+  },
+  {
+    id: '7',
+    title: 'Sağlık Takip Uygulaması',
+    description: 'Kişisel sağlık ve fitness takip sistemi',
+    status: 'test' as TaskStatus,
+    progress: 75,
+    tasks: 14,
+    members: 5,
+    startDate: '2024-01-01',
+    endDate: '2024-05-30',
+    team: [
+      { id: '1', name: 'Berk Yıldız', role: 'Proje Yöneticisi', department: 'Yönetim' },
+      { id: '2', name: 'Gamze Demir', role: 'Mobil Geliştirici', department: 'Yazılım' },
+      { id: '3', name: 'Ozan Kaya', role: 'Backend Geliştirici', department: 'Yazılım' },
+      { id: '4', name: 'İrem Şahin', role: 'UI/UX Tasarımcı', department: 'Tasarım' },
+      { id: '5', name: 'Kemal Çelik', role: 'Sağlık Danışmanı', department: 'Sağlık' },
+    ],
+    recentTasks: [
+      { id: '1', title: 'Fitness tracker entegrasyonu', status: 'tamamlandi', assignedTo: '2', progress: 100 },
+      { id: '2', title: 'Sağlık raporu oluşturma', status: 'devam', assignedTo: '3', progress: 80 },
+      { id: '3', title: 'Kullanıcı testleri', status: 'devam', assignedTo: '5', progress: 50 },
     ],
   },
 ];

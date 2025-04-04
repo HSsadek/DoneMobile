@@ -12,6 +12,7 @@ export type TeamMember = {
   id: string;
   name: string;
   role: string;
+  department: string;
   avatar?: string;
 };
 
@@ -20,4 +21,5 @@ export type Task = {
   title: string;
   assignee: string | null;
   dueDate: Date;
+  startDate: Date;
 }; 

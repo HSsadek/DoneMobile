@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Platform, SafeAreaView, TouchableOpacity, Image, TextInput as RNTextInput } from 'react-native';
+import { View, StyleSheet, ScrollView, Platform, SafeAreaView, TouchableOpacity, Image, TextInput as RNTextInput, Modal } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerStackParamList } from '../../navigation/types';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Text, Button, Portal, Modal, TextInput, Surface, Divider, useTheme, Avatar, Chip, List, IconButton } from 'react-native-paper';
+import { Text, Button, Portal, TextInput, Surface, Divider, useTheme, Avatar, Chip, List, IconButton } from 'react-native-paper';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { theme } from '../../theme';
@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { Project } from '../../types/project';
+import type { TeamMember, Task } from '../../types/project';
 import { generateId } from '../../utils/idGenerator';
 import { formatDate } from '../../utils/dateUtils';
 import { formatName } from '../../utils/nameUtils';
@@ -29,25 +29,35 @@ const capitalizeFirstLetter = (string: string) => {
 };
 
 // Örnek ekip üyeleri
-const SAMPLE_TEAM_MEMBERS = [
-  { id: '1', name: 'Ahmet Yılmaz', role: 'Proje Yöneticisi', avatar: 'https://ui-avatars.com/api/?name=Ahmet+Yılmaz&background=random' },
-  { id: '2', name: 'Ayşe Demir', role: 'Geliştirici', avatar: 'https://ui-avatars.com/api/?name=Ayşe+Demir&background=random' },
-  { id: '3', name: 'Mehmet Kaya', role: 'Tasarımcı', avatar: 'https://ui-avatars.com/api/?name=Mehmet+Kaya&background=random' },
+const SAMPLE_TEAM_MEMBERS: TeamMember[] = [
+  { id: '1', name: 'Ahmet Yılmaz', role: 'Proje Yöneticisi', department: 'Yönetim' },
+  { id: '2', name: 'Ayşe Demir', role: 'Geliştirici', department: 'Yazılım' },
+  { id: '3', name: 'Mehmet Kaya', role: 'Tasarımcı', department: 'Tasarım' },
 ];
-
-// Görev tipi tanımı
-type Task = {
-  id: string;
-  title: string;
-  assignee: string | null;
-  dueDate: Date;
-};
 
 // Örnek görevler
 const SAMPLE_TASKS: Task[] = [
-  { id: '1', title: 'Tasarım Dokümanı Hazırlama', assignee: null, dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
-  { id: '2', title: 'Frontend Geliştirme', assignee: null, dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) },
-  { id: '3', title: 'Backend API Geliştirme', assignee: null, dueDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000) },
+  { 
+    id: '1', 
+    title: 'Tasarım Dokümanı Hazırlama', 
+    assignee: null, 
+    startDate: new Date(),
+    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) 
+  },
+  { 
+    id: '2', 
+    title: 'Frontend Geliştirme', 
+    assignee: null, 
+    startDate: new Date(),
+    dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) 
+  },
+  { 
+    id: '3', 
+    title: 'Backend API Geliştirme', 
+    assignee: null, 
+    startDate: new Date(),
+    dueDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000) 
+  },
 ];
 
 // Üye tipi tanımı
@@ -60,12 +70,10 @@ type TeamMember = {
 
 // Üye kartı bileşeni
 const MemberCard = ({ member, tasks, onRemove }: { member: TeamMember; tasks: Task[]; onRemove: (id: string) => void }) => {
-  // İsmin ilk iki harfini al
   const getInitials = (name: string) => {
     return name.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase();
   };
 
-  // Avatar rengi oluştur
   const getAvatarColor = (name: string) => {
     const colors = ['#6366f1', '#3b82f6', '#ec4899', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6'];
     let hash = 0;
@@ -76,70 +84,55 @@ const MemberCard = ({ member, tasks, onRemove }: { member: TeamMember; tasks: Ta
   };
 
   return (
-    <Surface style={styles.memberCard} elevation={1}>
-      <View style={styles.memberHeader}>
-        {member.avatar ? (
-          <Avatar.Image 
-            size={50} 
-            source={{ uri: member.avatar }} 
-            style={styles.memberAvatar}
-          />
-        ) : (
-          <Avatar.Text 
-            size={50} 
-            label={getInitials(member.name)} 
-            style={[styles.memberAvatar, { backgroundColor: getAvatarColor(member.name) }]}
-          />
-        )}
-        <View style={styles.memberDetails}>
-          <Text variant="titleMedium" style={styles.memberName}>{member.name}</Text>
-          <Text variant="bodySmall" style={styles.memberRole}>{member.role}</Text>
+    <View style={styles.memberCard}>
+      <View style={styles.memberInfo}>
+        <View style={[styles.memberAvatar, { backgroundColor: getAvatarColor(member.name) }]}>
+          <Text style={styles.memberInitials}>{getInitials(member.name)}</Text>
         </View>
-        <IconButton 
-          icon="delete" 
-          size={20} 
-          onPress={() => onRemove(member.id)} 
-          style={styles.memberActionButton}
-          iconColor="#ff4444"
-        />
+        <View style={styles.memberDetails}>
+          <Text style={styles.memberName}>{member.name}</Text>
+          <Text style={styles.memberRole}>{member.role}</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.removeMemberButton}
+          onPress={() => onRemove(member.id)}
+        >
+          <Ionicons name="close-circle-outline" size={24} color="#FF3B30" />
+        </TouchableOpacity>
       </View>
-      
+
       {/* Üyenin Görevleri */}
-      <View style={styles.memberTasksContainer}>
-        <Text variant="bodyMedium" style={styles.memberTasksTitle}>Görevler</Text>
-        {tasks.filter(task => task.assignee === member.id).length > 0 ? (
-          <View style={styles.memberTasksList}>
-            {tasks.filter(task => task.assignee === member.id).map(task => (
-              <View key={task.id} style={styles.memberTaskItem}>
-                <Ionicons name="list-outline" size={16} color={theme.colors.primary} style={styles.taskIcon} />
+      {tasks.filter(task => task.assignee === member.id).length > 0 && (
+        <View style={styles.taskDetails}>
+          {tasks.filter(task => task.assignee === member.id).map(task => (
+            <View key={task.id} style={styles.taskCard}>
+              <View style={styles.taskInfo}>
                 <View style={styles.taskDetails}>
-                  <Text variant="bodyMedium" style={styles.memberTaskTitle}>{task.title}</Text>
-                  <Text variant="bodySmall" style={styles.memberTaskDueDate}>
+                  <Text style={styles.taskTitle}>{task.title}</Text>
+                  <Text style={styles.taskDueDate}>
                     Bitiş: {formatDate(task.dueDate)}
                   </Text>
                 </View>
               </View>
-            ))}
-          </View>
-        ) : (
-          <Text style={styles.emptyText}>Henüz görev atanmamış</Text>
-        )}
-      </View>
-    </Surface>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
   );
 };
 
 const NewProjectScreen = ({ navigation }: Props) => {
   const theme = useTheme();
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [projectTitle, setProjectTitle] = useState('');
+  const [projectDescription, setProjectDescription] = useState('');
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   
   // Ekip üyeleri ve görevler için state
-  const [teamMembers, setTeamMembers] = useState(SAMPLE_TEAM_MEMBERS);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(SAMPLE_TEAM_MEMBERS);
   const [tasks, setTasks] = useState<Task[]>(SAMPLE_TASKS);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
@@ -156,8 +149,10 @@ const NewProjectScreen = ({ navigation }: Props) => {
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskStartDate, setNewTaskStartDate] = useState(new Date());
   const [newTaskDueDate, setNewTaskDueDate] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
-  const [showNewTaskDatePicker, setShowNewTaskDatePicker] = useState(false);
+  const [showTaskStartDatePicker, setShowTaskStartDatePicker] = useState(false);
+  const [showTaskDueDatePicker, setShowTaskDueDatePicker] = useState(false);
   const [memberTasks, setMemberTasks] = useState<Array<{
     title: string;
     startDate: Date;
@@ -188,15 +183,14 @@ const NewProjectScreen = ({ navigation }: Props) => {
   };
 
   const handleCreate = () => {
-    if (!title || !description) {
+    if (!projectTitle || !projectDescription) {
       return;
     }
 
-    // Yeni proje oluşturma işlemi
     const newProject = {
-      id: (sampleProjects.length + 1).toString(),
-      title: title,
-      description: description,
+      id: generateId(),
+      title: projectTitle,
+      description: projectDescription,
       status: 'yapilacak' as TaskStatus,
       progress: 0,
       tasks: tasks.length,
@@ -213,7 +207,6 @@ const NewProjectScreen = ({ navigation }: Props) => {
       })),
     };
 
-    // Projeyi yapılacaklar listesine ekle
     sampleProjects.push(newProject);
     navigation.goBack();
   };
@@ -222,7 +215,7 @@ const NewProjectScreen = ({ navigation }: Props) => {
     setShowStartDatePicker(false);
     if (selectedDate) {
       setStartDate(selectedDate);
-      if (endDate < selectedDate) {
+      if (selectedDate > endDate) {
         setEndDate(selectedDate);
       }
     }
@@ -235,67 +228,35 @@ const NewProjectScreen = ({ navigation }: Props) => {
     }
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('tr-TR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  // Yeni üye görev tarihi değiştirme
-  const handleNewMemberTaskStartDateChange = (event: any, selectedDate?: Date) => {
-    setShowNewMemberTaskStartDatePicker(false);
+  const handleTaskStartDateChange = (event: any, selectedDate?: Date) => {
+    setShowTaskStartDatePicker(false);
     if (selectedDate) {
-      setNewMemberTaskStartDate(selectedDate);
-      // Eğer bitiş tarihi başlangıç tarihinden önceyse, bitiş tarihini başlangıç tarihine eşitle
-      if (newMemberTaskEndDate < selectedDate) {
-        setNewMemberTaskEndDate(selectedDate);
+      setNewTaskStartDate(selectedDate);
+      if (selectedDate > newTaskDueDate) {
+        setNewTaskDueDate(selectedDate);
       }
     }
   };
 
-  const handleNewMemberTaskEndDateChange = (event: any, selectedDate?: Date) => {
-    setShowNewMemberTaskEndDatePicker(false);
+  const handleTaskDueDateChange = (event: any, selectedDate?: Date) => {
+    setShowTaskDueDatePicker(false);
     if (selectedDate) {
-      setNewMemberTaskEndDate(selectedDate);
+      setNewTaskDueDate(selectedDate);
     }
   };
 
   // Ekip üyesi ekleme
   const handleAddMember = () => {
-    if (newMemberName) {
-      const formattedName = capitalizeFirstLetter(newMemberName);
-      
-      const newMember = {
-        id: (teamMembers.length + 1).toString(),
-        name: formattedName,
-        role: 'Üye',
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(formattedName)}&background=random`
+    if (newMemberName.trim() && newMemberRole.trim()) {
+      const newMember: TeamMember = {
+        id: generateId(),
+        name: newMemberName.trim(),
+        role: newMemberRole.trim(),
+        department: 'Genel',
       };
-      
       setTeamMembers([...teamMembers, newMember]);
-      
-      // Tüm görevleri ekle
-      memberTasks.forEach(task => {
-        if (task.title) {
-          const newTask = {
-            id: (tasks.length + 1).toString(),
-            title: task.title,
-            assignee: newMember.id,
-            dueDate: task.endDate
-          };
-          setTasks([...tasks, newTask]);
-        }
-      });
-      
-      // Form alanlarını temizle
       setNewMemberName('');
-      setMemberTasks([{
-        title: '',
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-      }]);
+      setNewMemberRole('');
       setShowAddMemberModal(false);
     }
   };
@@ -323,11 +284,20 @@ const NewProjectScreen = ({ navigation }: Props) => {
 
   // Görev ekleme
   const handleAddTask = () => {
-    setMemberTasks([...memberTasks, {
-      title: '',
-      startDate: new Date(),
-      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-    }]);
+    if (newTaskTitle.trim()) {
+      const newTask: Task = {
+        id: generateId(),
+        title: newTaskTitle.trim(),
+        assignee: null,
+        startDate: newTaskStartDate,
+        dueDate: newTaskDueDate,
+      };
+      setTasks([...tasks, newTask]);
+      setNewTaskTitle('');
+      setNewTaskStartDate(new Date());
+      setNewTaskDueDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+      setShowAddTaskModal(false);
+    }
   };
 
   // Görev atama
@@ -339,13 +309,6 @@ const NewProjectScreen = ({ navigation }: Props) => {
     ));
     setShowAssignTaskModal(false);
     setSelectedTask(null);
-  };
-
-  // Görev tarihi değiştirme
-  const handleNewTaskDateChange = (event: any, selectedDate?: Date) => {
-    if (selectedDate) {
-      setNewTaskDueDate(selectedDate);
-    }
   };
 
   const handleRemoveTask = (index: number) => {
@@ -365,399 +328,352 @@ const NewProjectScreen = ({ navigation }: Props) => {
       <StatusBar style="dark" />
       <View style={styles.container}>
         <View style={styles.header}>
-          <IconButton
-            icon="arrow-left"
-            size={22}
+          <TouchableOpacity
+            style={styles.backButton}
             onPress={() => navigation.goBack()}
-            style={styles.headerButton}
-          />
-          <Text variant="titleMedium" style={styles.headerTitle}>Yeni Proje</Text>
-          <IconButton
-            icon="check"
-            size={22}
+          >
+            <Ionicons name="arrow-back" size={24} color="#333" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Yeni Proje</Text>
+          <TouchableOpacity
+            style={styles.saveButton}
             onPress={handleCreate}
-            style={styles.headerButton}
-          />
+          >
+            <Text style={styles.saveButtonText}>Oluştur</Text>
+          </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <Surface style={styles.formCard} elevation={1}>
-            <View style={styles.formGroup}>
-              <Text variant="titleMedium" style={styles.label}>Proje Adı</Text>
+        <ScrollView style={styles.content}>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Proje Bilgileri</Text>
+            
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Proje Adı</Text>
               <TextInput
-                mode="flat"
-                value={title}
-                onChangeText={setTitle}
-                placeholder="Proje adını girin"
                 style={styles.input}
-                underlineColor="transparent"
-                activeUnderlineColor={theme.colors.primary}
-                left={<TextInput.Icon icon="folder" color={theme.colors.primary} />}
-                right={title.length > 0 ? <TextInput.Icon icon="check" color={theme.colors.primary} /> : null}
+                value={projectTitle}
+                onChangeText={setProjectTitle}
+                placeholder="Proje adını girin"
               />
             </View>
 
-            <Divider style={styles.divider} />
-
-            <View style={styles.formGroup}>
-              <Text variant="titleMedium" style={styles.label}>Açıklama</Text>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Açıklama</Text>
               <TextInput
-                mode="flat"
-                value={description}
-                onChangeText={setDescription}
+                style={[styles.input, styles.textArea]}
+                value={projectDescription}
+                onChangeText={setProjectDescription}
                 placeholder="Proje açıklamasını girin"
                 multiline
                 numberOfLines={4}
-                style={[styles.input, styles.textArea]}
-                underlineColor="transparent"
-                activeUnderlineColor={theme.colors.primary}
-                left={<TextInput.Icon icon="text" color={theme.colors.primary} />}
               />
-              <Text style={styles.characterCount}>
-                {description.length}/500 karakter
-              </Text>
             </View>
 
-            <Divider style={styles.divider} />
-
-            <View style={styles.formGroup}>
-              <View style={styles.sectionHeader}>
-                <Text variant="titleMedium" style={styles.label}>Ekip Üyeleri</Text>
-                <Button 
-                  mode="contained-tonal" 
-                  onPress={() => setShowAddMemberModal(true)}
-                  icon="account-plus"
-                  compact
+            <View style={styles.dateContainer}>
+              <View style={styles.dateInputContainer}>
+                <Text style={styles.label}>Başlangıç Tarihi</Text>
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowStartDatePicker(true)}
                 >
-                  Ekle
-                </Button>
+                  <Text style={styles.dateButtonText}>{formatDate(startDate)}</Text>
+                  <Ionicons name="calendar-outline" size={20} color="#666" />
+                </TouchableOpacity>
               </View>
-              
-              {teamMembers.length > 0 ? (
-                <View style={styles.teamMembersContainer}>
-                  {teamMembers.map(member => (
-                    <MemberCard 
-                      key={member.id} 
-                      member={member} 
-                      tasks={tasks} 
-                      onRemove={handleRemoveMember} 
-                    />
-                  ))}
-                </View>
-              ) : (
-                <Text style={styles.emptyText}>Henüz ekip üyesi eklenmemiş</Text>
-              )}
+
+              <View style={styles.dateInputContainer}>
+                <Text style={styles.label}>Bitiş Tarihi</Text>
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowEndDatePicker(true)}
+                >
+                  <Text style={styles.dateButtonText}>{formatDate(endDate)}</Text>
+                  <Ionicons name="calendar-outline" size={20} color="#666" />
+                </TouchableOpacity>
+              </View>
             </View>
-          </Surface>
+          </View>
+
+          {/* Ekip Üyeleri Bölümü */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Ekip Üyeleri</Text>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => setShowAddMemberModal(true)}
+              >
+                <Ionicons name="person-add-outline" size={20} color="#007AFF" />
+                <Text style={styles.addButtonText}>Üye Ekle</Text>
+              </TouchableOpacity>
+            </View>
+
+            {teamMembers.map((member) => (
+              <MemberCard key={member.id} member={member} tasks={tasks} onRemove={handleRemoveMember} />
+            ))}
+          </View>
+
+          {/* Görevler Bölümü */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Görevler</Text>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => setShowAddTaskModal(true)}
+              >
+                <Ionicons name="add-circle-outline" size={20} color="#007AFF" />
+                <Text style={styles.addButtonText}>Görev Ekle</Text>
+              </TouchableOpacity>
+            </View>
+
+            {tasks.map((task) => (
+              <View key={task.id} style={styles.taskCard}>
+                <View style={styles.taskInfo}>
+                  <View style={styles.taskDetails}>
+                    <Text style={styles.taskTitle}>{task.title}</Text>
+                    <Text style={styles.taskAssignee}>
+                      {task.assignee ? teamMembers.find(m => m.id === task.assignee)?.name || 'Atanmamış' : 'Atanmamış'}
+                    </Text>
+                    <Text style={styles.taskDueDate}>
+                      {formatDate(task.dueDate)}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.removeTaskButton}
+                    onPress={() => handleRemoveTask(task.id)}
+                  >
+                    <Ionicons name="close-circle-outline" size={24} color="#FF3B30" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
         </ScrollView>
-      </View>
 
-      {Platform.OS === 'ios' ? (
-        <>
-          {showStartDatePicker && (
-            <DateTimePicker
-              value={startDate}
-              mode="date"
-              display="spinner"
-              onChange={handleStartDateChange}
-            />
-          )}
-          {showEndDatePicker && (
-            <DateTimePicker
-              value={endDate}
-              mode="date"
-              display="spinner"
-              onChange={handleEndDateChange}
-            />
-          )}
-        </>
-      ) : (
-        (showStartDatePicker || showEndDatePicker) && (
-          <DateTimePicker
-            value={showStartDatePicker ? startDate : endDate}
-            mode="date"
-            display="default"
-            onChange={showStartDatePicker ? handleStartDateChange : handleEndDateChange}
-          />
-        )
-      )}
-
-      {/* Ekip Üyesi Ekleme Modal */}
-      <Portal>
+        {/* Üye Ekleme Modalı */}
         <Modal
           visible={showAddMemberModal}
-          onDismiss={() => setShowAddMemberModal(false)}
-          style={styles.alertModal}
+          animationType="slide"
+          onRequestClose={() => setShowAddMemberModal(false)}
         >
-          <Surface style={styles.alertContent} elevation={5}>
-            <View style={styles.modalHeader}>
-              <IconButton 
-                icon="close" 
-                size={20} 
-                onPress={() => setShowAddMemberModal(false)}
-                style={styles.modalCloseButton}
-              />
-              <Text variant="titleMedium" style={styles.modalTitle}>
-                Ekip Üyesi Ekle
-              </Text>
-              <View style={{ width: 40 }} />
-            </View>
-            
-            <ScrollView 
-              style={styles.modalScrollView} 
-              showsVerticalScrollIndicator={true}
-              contentContainerStyle={styles.modalScrollContent}
-            >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Yeni Üye Ekle</Text>
+                <TouchableOpacity
+                  style={styles.modalCloseButton}
+                  onPress={() => setShowAddMemberModal(false)}
+                >
+                  <Ionicons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
+
               <View style={styles.modalBody}>
-                <View style={styles.inputGroup}>
-                  <Text variant="bodySmall" style={styles.inputLabel}>İsim</Text>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>İsim Soyisim</Text>
                   <TextInput
-                    mode="flat"
+                    style={styles.input}
                     value={newMemberName}
                     onChangeText={setNewMemberName}
                     placeholder="Üye ismini girin"
-                    style={styles.modalInput}
-                    underlineColor="transparent"
-                    activeUnderlineColor={theme.colors.primary}
-                    left={<TextInput.Icon icon="account" color={theme.colors.primary} />}
                   />
                 </View>
-                
-                <Divider style={styles.modalDivider} />
-                
-                <View style={styles.tasksSection}>
-                  <View style={styles.tasksHeader}>
-                    <Text variant="titleSmall" style={styles.tasksTitle}>Görevler</Text>
-                    <Button
-                      mode="contained-tonal"
-                      onPress={handleAddTask}
-                      icon="plus"
-                      style={styles.addTaskButton}
-                    >
-                      Görev Ekle
-                    </Button>
-                  </View>
 
-                  {memberTasks.map((task, index) => (
-                    <View key={index} style={styles.taskItem}>
-                      <View style={styles.taskHeader}>
-                        <Text variant="titleSmall" style={styles.taskNumber}>Görev {index + 1}</Text>
-                        {index > 0 && (
-                          <IconButton
-                            icon="close"
-                            size={20}
-                            onPress={() => handleRemoveTask(index)}
-                            style={styles.removeTaskButton}
-                          />
-                        )}
-                      </View>
-
-                      <TextInput
-                        mode="flat"
-                        value={task.title}
-                        onChangeText={(text: string) => handleTaskTitleChangeForIndex(index, text)}
-                        placeholder="Görev başlığını girin"
-                        style={styles.modalInput}
-                        underlineColor="transparent"
-                        activeUnderlineColor={theme.colors.primary}
-                        left={<TextInput.Icon icon="format-list-checks" color={theme.colors.primary} />}
-                      />
-
-                      <View style={styles.dateRow}>
-                        <View style={styles.dateInputGroup}>
-                          <Text variant="bodySmall" style={styles.inputLabel}>Atama Tarihi</Text>
-                          <TouchableOpacity 
-                            style={styles.modalDateButton}
-                            onPress={() => {
-                              setSelectedTaskIndex(index);
-                              setShowNewMemberTaskStartDatePicker(true);
-                            }}
-                          >
-                            <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
-                            <Text style={styles.modalDateText}>{formatDate(task.startDate)}</Text>
-                          </TouchableOpacity>
-                        </View>
-                        
-                        <View style={styles.dateInputGroup}>
-                          <Text variant="bodySmall" style={styles.inputLabel}>Teslim Tarihi</Text>
-                          <TouchableOpacity 
-                            style={styles.modalDateButton}
-                            onPress={() => {
-                              setSelectedTaskIndex(index);
-                              setShowNewMemberTaskEndDatePicker(true);
-                            }}
-                          >
-                            <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
-                            <Text style={styles.modalDateText}>{formatDate(task.endDate)}</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    </View>
-                  ))}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Rol</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={newMemberRole}
+                    onChangeText={setNewMemberRole}
+                    placeholder="Üye rolünü girin"
+                  />
                 </View>
               </View>
-            </ScrollView>
-            
-            <View style={styles.modalFooter}>
-              <Button 
-                mode="outlined" 
-                onPress={() => setShowAddMemberModal(false)}
-                style={styles.modalFooterButton}
-                contentStyle={{ paddingVertical: 8 }}
-                icon="close"
-                textColor="#666"
-                buttonColor="#f8f9fa"
-              >
-                İptal
-              </Button>
-              <Button 
-                mode="contained" 
-                onPress={handleAddMember}
-                style={[styles.modalFooterButton, styles.addButton]}
-                contentStyle={{ paddingVertical: 8 }}
-                disabled={!newMemberName}
-                icon="account-plus"
-                buttonColor="#6200EE"
-                labelStyle={{ fontWeight: 'bold', fontSize: 16, color: '#FFFFFF' }}
-                elevation={2}
-              >
-                Ekle
-              </Button>
+
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalCancelButton]}
+                  onPress={() => setShowAddMemberModal(false)}
+                >
+                  <Text style={styles.modalButtonText}>İptal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalSaveButton]}
+                  onPress={handleAddMember}
+                  disabled={!newMemberName.trim() || !newMemberRole.trim()}
+                >
+                  <Text style={styles.modalButtonText}>Ekle</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </Surface>
+          </View>
         </Modal>
 
-        {/* Yeni Üye Görev Tarih Seçicileri */}
-        {Platform.OS === 'ios' ? (
+        {/* Görev Ekleme Modalı */}
+        <Modal
+          visible={showAddTaskModal}
+          animationType="slide"
+          onRequestClose={() => setShowAddTaskModal(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Yeni Görev Ekle</Text>
+                <TouchableOpacity
+                  style={styles.modalCloseButton}
+                  onPress={() => setShowAddTaskModal(false)}
+                >
+                  <Ionicons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.modalBody}>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Görev Başlığı</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={newTaskTitle}
+                    onChangeText={handleTaskTitleChange}
+                    placeholder="Görev başlığını girin"
+                  />
+                </View>
+
+                <View style={styles.dateContainer}>
+                  <View style={styles.dateInputContainer}>
+                    <Text style={styles.label}>Başlangıç Tarihi</Text>
+                    <TouchableOpacity
+                      style={styles.dateButton}
+                      onPress={() => setShowTaskStartDatePicker(true)}
+                    >
+                      <Text style={styles.dateButtonText}>{formatDate(newTaskStartDate)}</Text>
+                      <Ionicons name="calendar-outline" size={20} color="#666" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.dateInputContainer}>
+                    <Text style={styles.label}>Bitiş Tarihi</Text>
+                    <TouchableOpacity
+                      style={styles.dateButton}
+                      onPress={() => setShowTaskDueDatePicker(true)}
+                    >
+                      <Text style={styles.dateButtonText}>{formatDate(newTaskDueDate)}</Text>
+                      <Ionicons name="calendar-outline" size={20} color="#666" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalCancelButton]}
+                  onPress={() => setShowAddTaskModal(false)}
+                >
+                  <Text style={[styles.modalButtonText, { color: '#666' }]}>İptal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalSaveButton]}
+                  onPress={handleAddTask}
+                  disabled={!newTaskTitle.trim()}
+                >
+                  <Text style={styles.modalButtonText}>Ekle</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Tarih Seçici Modalları */}
+        {Platform.OS === 'ios' && (
           <>
-            {showNewMemberTaskStartDatePicker && (
+            <Modal
+              visible={showStartDatePicker}
+              animationType="slide"
+              onRequestClose={() => setShowStartDatePicker(false)}
+            >
+              <View style={styles.modalContainer}>
+                <View style={styles.modalContent}>
+                  <DateTimePicker
+                    value={startDate}
+                    mode="date"
+                    display="spinner"
+                    onChange={handleStartDateChange}
+                    minimumDate={new Date()}
+                  />
+                  <TouchableOpacity
+                    style={styles.modalButton}
+                    onPress={() => setShowStartDatePicker(false)}
+                  >
+                    <Text style={styles.modalButtonText}>Tamam</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
+
+            <Modal
+              visible={showEndDatePicker}
+              animationType="slide"
+              onRequestClose={() => setShowEndDatePicker(false)}
+            >
+              <View style={styles.modalContainer}>
+                <View style={styles.modalContent}>
+                  <DateTimePicker
+                    value={endDate}
+                    mode="date"
+                    display="spinner"
+                    onChange={handleEndDateChange}
+                    minimumDate={startDate}
+                  />
+                  <TouchableOpacity
+                    style={styles.modalButton}
+                    onPress={() => setShowEndDatePicker(false)}
+                  >
+                    <Text style={styles.modalButtonText}>Tamam</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
+          </>
+        )}
+
+        {Platform.OS === 'android' && (
+          <>
+            {showStartDatePicker && (
               <DateTimePicker
-                value={newMemberTaskStartDate}
+                value={startDate}
                 mode="date"
-                display="spinner"
-                onChange={handleNewMemberTaskStartDateChange}
+                onChange={handleStartDateChange}
+                minimumDate={new Date()}
               />
             )}
-            {showNewMemberTaskEndDatePicker && (
+            {showEndDatePicker && (
               <DateTimePicker
-                value={newMemberTaskEndDate}
+                value={endDate}
                 mode="date"
-                display="spinner"
-                onChange={handleNewMemberTaskEndDateChange}
+                onChange={handleEndDateChange}
+                minimumDate={startDate}
               />
             )}
           </>
-        ) : (
-          (showNewMemberTaskStartDatePicker || showNewMemberTaskEndDatePicker) && (
-            <DateTimePicker
-              value={showNewMemberTaskStartDatePicker ? newMemberTaskStartDate : newMemberTaskEndDate}
-              mode="date"
-              display="default"
-              onChange={showNewMemberTaskStartDatePicker ? handleNewMemberTaskStartDateChange : handleNewMemberTaskEndDateChange}
-            />
-          )
         )}
 
-        {/* Görev Ekleme Modal */}
-        <Modal
-          visible={showAddTaskModal}
-          onDismiss={() => setShowAddTaskModal(false)}
-          style={styles.modal}
-        >
-          <Surface style={styles.modalContent} elevation={5}>
-            <Text variant="titleLarge" style={styles.modalTitle}>Görev Ekle</Text>
-            
-            <TextInput
-              mode="flat"
-              value={newTaskTitle}
-              onChangeText={handleTaskTitleChange}
-              placeholder="Görev başlığı"
-              style={styles.modalInput}
-              underlineColor="transparent"
-              activeUnderlineColor={theme.colors.primary}
-              left={<TextInput.Icon icon="checkbox-marked-circle" color={theme.colors.primary} />}
-            />
-            
-            <View style={styles.dateInputContainer}>
-              <Text variant="bodyMedium" style={styles.dateLabel}>Bitiş Tarihi</Text>
-              <Button
-                mode="outlined"
-                onPress={() => setShowNewTaskDatePicker(true)}
-                style={styles.dateButton}
-                icon="calendar"
-                contentStyle={styles.dateButtonContent}
-              >
-                {formatDate(newTaskDueDate)}
-              </Button>
-            </View>
-            
-            <View style={styles.modalActions}>
-              <Button 
-                mode="outlined" 
-                onPress={() => setShowAddTaskModal(false)}
-                style={styles.modalActionButton}
-                contentStyle={{ paddingVertical: 8 }}
-              >
-                İptal
-              </Button>
-              <Button 
-                mode="contained" 
-                onPress={handleAddTask}
-                style={styles.modalActionButton}
-                contentStyle={{ paddingVertical: 8 }}
-                disabled={!newTaskTitle}
-              >
-                Ekle
-              </Button>
-            </View>
-          </Surface>
-        </Modal>
+        {showTaskStartDatePicker && (
+          <DateTimePicker
+            value={newTaskStartDate}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={handleTaskStartDateChange}
+            minimumDate={new Date()}
+          />
+        )}
 
-        {/* Görev Atama Modal */}
-        <Modal
-          visible={showAssignTaskModal}
-          onDismiss={() => setShowAssignTaskModal(false)}
-          style={styles.modal}
-        >
-          <Surface style={styles.modalContent} elevation={5}>
-            <Text variant="titleLarge" style={styles.modalTitle}>Görev Ata</Text>
-            
-            <Text variant="bodyMedium" style={styles.modalSubtitle}>
-              {selectedTask ? tasks.find(t => t.id === selectedTask)?.title || 'Görev bulunamadı' : ''}
-            </Text>
-            
-            <View style={styles.membersList}>
-              {teamMembers.map(member => (
-                <List.Item
-                  key={member.id}
-                  title={member.name}
-                  description={member.role}
-                  left={(props: { color: string; style: any }) => (
-                    <Avatar.Image {...props} size={40} source={{ uri: member.avatar }} />
-                  )}
-                  right={(props: { color: string; style?: any }) => (
-                    <IconButton
-                      {...props}
-                      icon="check"
-                      size={20}
-                      onPress={() => selectedTask && handleAssignTask(selectedTask, member.id)}
-                    />
-                  )}
-                  style={styles.memberListItem}
-                />
-              ))}
-            </View>
-            
-            <Button 
-              mode="outlined" 
-              onPress={() => setShowAssignTaskModal(false)}
-              style={styles.modalButton}
-              contentStyle={{ paddingVertical: 8 }}
-            >
-              İptal
-            </Button>
-          </Surface>
-        </Modal>
+        {showTaskDueDatePicker && (
+          <DateTimePicker
+            value={newTaskDueDate}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={handleTaskDueDateChange}
+            minimumDate={newTaskStartDate}
+          />
+        )}
 
         {/* Silme Onay Modalı */}
         <Modal
@@ -794,7 +710,7 @@ const NewProjectScreen = ({ navigation }: Props) => {
             </View>
           </Surface>
         </Modal>
-      </Portal>
+      </View>
     </SafeAreaView>
   );
 };
@@ -802,7 +718,7 @@ const NewProjectScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#fff',
   },
   container: {
     flex: 1,
@@ -810,428 +726,290 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    backgroundColor: '#f8f9fa',
-    marginTop: 30,
-    height: 50,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    marginTop: 20,
   },
-  headerButton: {
-    margin: 0,
-    padding: 0,
+  backButton: {
+    marginRight: 15,
   },
   headerTitle: {
-    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333',
+    flex: 1,
+  },
+  saveButton: {
+    padding: 8,
+  },
+  saveButtonText: {
     fontSize: 16,
+    color: '#007AFF',
     fontWeight: '600',
   },
   content: {
     flex: 1,
-    padding: 16,
-    paddingTop: 8,
+    padding: 20,
   },
-  formCard: {
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 8,
-  },
-  input: {
-    marginBottom: 16,
-    backgroundColor: '#fff',
-  },
-  inputContent: {
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#000',
-    height: 50,
-    textAlignVertical: 'center',
-  },
-  textArea: {
-    height: 120,
-    textAlignVertical: 'top',
-  },
-  textAreaContent: {
-    paddingTop: 12,
-    paddingBottom: 12,
-    fontSize: 16,
-    color: '#000',
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  characterCount: {
-    fontSize: 12,
-    color: '#888',
-    textAlign: 'right',
-    marginTop: 4,
-  },
-  divider: {
-    marginVertical: 16,
-  },
-  dateContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  dateInputContainer: {
-    flex: 1,
-  },
-  dateLabel: {
-    marginBottom: 8,
-    color: '#666',
-  },
-  dateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    flex: 1,
-    marginHorizontal: 8,
-  },
-  dateText: {
-    marginLeft: 8,
-    color: '#666',
-  },
-  dateButtonContent: {
-    paddingVertical: 12,
-  },
-  modal: {
-    backgroundColor: 'white',
-    margin: 20,
-    borderRadius: 8,
-    maxWidth: '90%',
-    alignSelf: 'center',
-    maxHeight: '50%',
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: '-50%' }, { translateY: '-50%' }],
-  },
-  modalContent: {
-    padding: 16,
-  },
-  modalTitle: {
-    marginBottom: 16,
-  },
-  modalSubtitle: {
-    marginBottom: 16,
-    color: '#666',
-  },
-  modalButton: {
-    marginTop: 16,
-  },
-  modalInput: {
-    width: '100%',
-    marginBottom: 16,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    fontSize: 16,
-    color: '#000',
-    height: 50,
-    paddingHorizontal: 12,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 16,
-  },
-  modalActionButton: {
-    flex: 1,
-    marginHorizontal: 8,
+  section: {
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  teamMembersContainer: {
-    gap: 12,
-  },
-  memberCard: {
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#fff',
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
   },
-  memberHeader: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    backgroundColor: '#E3F2FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  addButtonText: {
+    color: '#007AFF',
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  memberCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E1E1E1',
+  },
+  memberInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   memberAvatar: {
-    marginRight: 16,
-    backgroundColor: '#f0f0f0',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#007AFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  memberInitials: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   memberDetails: {
     flex: 1,
+    marginLeft: 12,
   },
   memberName: {
+    fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
-  },
-  memberRole: {
-    color: '#666',
-    fontSize: 14,
-  },
-  memberActionButton: {
-    margin: 0,
-  },
-  memberTasksContainer: {
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    paddingTop: 16,
-  },
-  memberTasksTitle: {
-    fontWeight: '600',
-    marginBottom: 12,
     color: '#333',
   },
-  memberTasksList: {
-    gap: 12,
-  },
-  memberTaskItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 12,
-  },
-  taskIcon: {
-    marginRight: 12,
+  memberRole: {
+    fontSize: 14,
+    color: '#666',
     marginTop: 2,
   },
-  taskDetails: {
-    flex: 1,
-  },
-  memberTaskTitle: {
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  memberTaskDueDate: {
+  memberDepartment: {
     fontSize: 12,
-    color: '#666',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#666',
-    marginTop: 16,
-  },
-  formGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    marginBottom: 8,
+    color: '#007AFF',
+    marginTop: 2,
     fontWeight: '500',
   },
-  alertModal: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  removeMemberButton: {
+    padding: 4,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    margin: 0,
-    padding: 0,
   },
-  alertContent: {
-    width: 350,
-    height: 450,
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginHorizontal: 16,
+  modalContent: {
     backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  alertTitle: {
-    textAlign: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    fontWeight: '600',
-  },
-  alertMessage: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    textAlign: 'center',
-  },
-  alertActions: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  alertButton: {
-    flex: 1,
-    margin: 0,
-    borderRadius: 0,
+    borderRadius: 12,
+    width: '90%',
+    maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    alignItems: 'center',
+    padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#E1E1E1',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
   },
   modalCloseButton: {
-    margin: 0,
+    padding: 4,
   },
   modalBody: {
     padding: 16,
   },
   modalFooter: {
     flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-  },
-  modalFooterButton: {
-    flex: 1,
-    margin: 4,
-    borderRadius: 8,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  inputLabel: {
-    marginBottom: 8,
-    color: '#666',
-  },
-  dateRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  dateInputGroup: {
-    flex: 1,
-    marginHorizontal: 4,
-  },
-  addButton: {
-    backgroundColor: '#6200EE',
-  },
-  tasksSection: {
-    marginTop: 16,
-  },
-  tasksHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  tasksTitle: {
-    fontWeight: 'bold',
-  },
-  addTaskButton: {
-    borderRadius: 8,
-  },
-  taskItem: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-  taskHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  taskNumber: {
-    fontWeight: 'bold',
-    color: '#6200EE',
-  },
-  removeTaskButton: {
-    margin: 0,
-  },
-  modalScrollView: {
-    maxHeight: '70%',
-  },
-  modalScrollContent: {
-    paddingBottom: 16,
-  },
-  nativeInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    height: 50,
-    paddingHorizontal: 12,
-    marginBottom: 8,
-  },
-  inputIcon: {
-    marginRight: 8,
-  },
-  memberListItem: {
-    paddingVertical: 8,
-  },
-  membersList: {
-    marginTop: 16,
-  },
-  tasksContainer: {
-    marginTop: 16,
-  },
-  taskCard: {
     padding: 16,
-    marginBottom: 8,
-    borderRadius: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E1E1E1',
+    gap: 8,
   },
-  taskInfo: {
-    marginBottom: 8,
-  },
-  taskTitle: {
-    fontWeight: '500',
-  },
-  taskDueDate: {
-    color: '#666',
-    marginTop: 4,
-  },
-  assigneeChip: {
-    marginLeft: 8,
-  },
-  taskActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  modalDivider: {
-    marginVertical: 16,
-  },
-  modalDateContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  modalDateInputContainer: {
+  modalButton: {
     flex: 1,
-    marginHorizontal: 4,
-  },
-  modalDateLabel: {
-    marginBottom: 8,
-    color: '#666',
-  },
-  modalDateButton: {
-    flexDirection: 'row',
+    paddingVertical: 12,
+    borderRadius: 8,
     alignItems: 'center',
-    padding: 12,
+  },
+  modalCancelButton: {
+    backgroundColor: '#F8F9FA',
+  },
+  modalSaveButton: {
+    backgroundColor: '#007AFF',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  input: {
     backgroundColor: '#f5f5f5',
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    height: 50,
-  },
-  modalDateText: {
-    marginLeft: 8,
+    padding: 12,
+    fontSize: 16,
     color: '#333',
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  dateInputContainer: {
+    flex: 1,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    padding: 12,
+    borderRadius: 8,
+  },
+  dateButtonText: {
+    color: '#333',
+    fontSize: 16,
+    marginRight: 4,
+  },
+  taskCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E1E1E1',
+  },
+  taskInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  taskDetails: {
+    flex: 1,
+  },
+  taskTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  taskAssignee: {
     fontSize: 14,
+    color: '#666',
+    marginBottom: 2,
+  },
+  taskDueDate: {
+    fontSize: 12,
+    color: '#007AFF',
+  },
+  removeTaskButton: {
+    padding: 4,
+  },
+  memberSelectContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  memberSelectButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E1E1E1',
+  },
+  memberSelectButtonActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  memberSelectButtonText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  memberSelectButtonTextActive: {
+    color: '#fff',
+  },
+  alertModal: {
+    margin: 0,
+    justifyContent: 'flex-end',
+  },
+  alertContent: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    maxHeight: '50%',
+  },
+  alertTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 16,
+  },
+  alertMessage: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 24,
+  },
+  alertActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  alertButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
 });
 
