@@ -1,5 +1,15 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  SafeAreaView, 
+  ScrollView, 
+  Dimensions,
+  ActivityIndicator,
+  RefreshControl
+} from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,301 +17,79 @@ import { DrawerStackParamList } from '../../navigation/types';
 import { Button, useTheme, FAB } from 'react-native-paper';
 import { TeamMember, TaskStatus } from '../../types/project';
 import { CustomTheme } from '../../theme';
+import { useProjects, Project } from '../../context/ProjectContext';
 
 type Props = DrawerScreenProps<DrawerStackParamList, 'Home'>;
 
 const { width } = Dimensions.get('window');
 
-// Örnek proje verileri
-export const sampleProjects: Array<{
-  id: string;
-  title: string;
-  description: string;
-  status: TaskStatus;
-  progress: number;
-  tasks: number;
-  members: number;
-  startDate: string;
-  endDate: string;
-  team: TeamMember[];
-  recentTasks: Array<{
-    id: string;
-    title: string;
-    status: string;
-    assignedTo: string;
-    progress: number;
-  }>;
-}> = [
-  {
-    id: '1',
-    title: 'E-ticaret Uygulaması',
-    description: 'Online alışveriş platformu geliştirme projesi',
-    status: 'devam',
-    progress: 65,
-    tasks: 12,
-    members: 5,
-    startDate: '2024-01-15',
-    endDate: '2024-06-30',
-    team: [
-      { id: '1', name: 'Ahmet Yılmaz', role: 'Proje Yöneticisi', department: 'Yönetim' },
-      { id: '2', name: 'Ayşe Demir', role: 'Frontend Geliştirici', department: 'Yazılım' },
-      { id: '3', name: 'Mehmet Kaya', role: 'Backend Geliştirici', department: 'Yazılım' },
-      { id: '4', name: 'Zeynep Şahin', role: 'UI/UX Tasarımcı', department: 'Tasarım' },
-      { id: '5', name: 'Can Özkan', role: 'Test Mühendisi', department: 'Test' },
-    ],
-    recentTasks: [
-      { id: '1', title: 'Kullanıcı arayüzü tasarımı', status: 'tamamlandi', assignedTo: '4', progress: 100 },
-      { id: '2', title: 'Veritabanı şeması oluşturma', status: 'devam', assignedTo: '3', progress: 75 },
-      { id: '3', title: 'API entegrasyonu', status: 'beklemede', assignedTo: '2', progress: 0 },
-    ],
-  },
-  {
-    id: '2',
-    title: 'Mobil Bankacılık',
-    description: 'Finansal işlemler için mobil uygulama',
-    status: 'yapilacak' as TaskStatus,
-    progress: 0,
-    tasks: 8,
-    members: 3,
-    startDate: '2024-02-01',
-    endDate: '2024-08-15',
-    team: [
-      { id: '1', name: 'Ali Yıldız', role: 'Proje Yöneticisi', department: 'Yönetim' },
-      { id: '2', name: 'Fatma Kaya', role: 'Mobil Geliştirici', department: 'Yazılım' },
-      { id: '3', name: 'Murat Demir', role: 'Backend Geliştirici', department: 'Yazılım' },
-    ],
-    recentTasks: [
-      { id: '1', title: 'Proje planlaması', status: 'beklemede', assignedTo: '1', progress: 0 },
-      { id: '2', title: 'Tasarım dokümanı', status: 'beklemede', assignedTo: '2', progress: 0 },
-    ],
-  },
-  {
-    id: '3',
-    title: 'CRM Sistemi',
-    description: 'Müşteri ilişkileri yönetim sistemi',
-    status: 'test' as TaskStatus,
-    progress: 85,
-    tasks: 15,
-    members: 6,
-    startDate: '2023-11-01',
-    endDate: '2024-03-30',
-    team: [
-      { id: '1', name: 'Ayşe Yılmaz', role: 'Proje Yöneticisi', department: 'Yönetim' },
-      { id: '2', name: 'Mehmet Demir', role: 'Frontend Geliştirici', department: 'Yazılım' },
-      { id: '3', name: 'Can Kaya', role: 'Backend Geliştirici', department: 'Yazılım' },
-      { id: '4', name: 'Zeynep Şahin', role: 'UI/UX Tasarımcı', department: 'Tasarım' },
-      { id: '5', name: 'Ali Özkan', role: 'Test Mühendisi', department: 'Test' },
-      { id: '6', name: 'Fatma Yıldız', role: 'Veri Analisti', department: 'Analiz' },
-    ],
-    recentTasks: [
-      { id: '1', title: 'Kullanıcı testleri', status: 'devam', assignedTo: '5', progress: 60 },
-      { id: '2', title: 'Performans optimizasyonu', status: 'devam', assignedTo: '3', progress: 45 },
-      { id: '3', title: 'Hata düzeltmeleri', status: 'tamamlandi', assignedTo: '2', progress: 100 },
-    ],
-  },
-  {
-    id: '4',
-    title: 'Sosyal Medya Platformu',
-    description: 'Yeni nesil sosyal medya uygulaması',
-    status: 'tamamlanan' as TaskStatus,
-    progress: 100,
-    tasks: 20,
-    members: 8,
-    startDate: '2023-06-01',
-    endDate: '2024-01-15',
-    team: [
-      { id: '1', name: 'Ahmet Demir', role: 'Proje Yöneticisi', department: 'Yönetim' },
-      { id: '2', name: 'Ayşe Kaya', role: 'Frontend Geliştirici', department: 'Yazılım' },
-      { id: '3', name: 'Mehmet Yılmaz', role: 'Backend Geliştirici', department: 'Yazılım' },
-      { id: '4', name: 'Zeynep Özkan', role: 'UI/UX Tasarımcı', department: 'Tasarım' },
-      { id: '5', name: 'Can Şahin', role: 'Test Mühendisi', department: 'Test' },
-      { id: '6', name: 'Ali Yıldız', role: 'DevOps Mühendisi', department: 'Operasyon' },
-      { id: '7', name: 'Fatma Demir', role: 'Veri Analisti', department: 'Analiz' },
-      { id: '8', name: 'Murat Kaya', role: 'Güvenlik Uzmanı', department: 'Güvenlik' },
-    ],
-    recentTasks: [
-      { id: '1', title: 'Son kullanıcı testleri', status: 'tamamlandi', assignedTo: '5', progress: 100 },
-      { id: '2', title: 'Dokümantasyon', status: 'tamamlandi', assignedTo: '7', progress: 100 },
-      { id: '3', title: 'Canlıya alma', status: 'tamamlandi', assignedTo: '6', progress: 100 },
-    ],
-  },
-  {
-    id: '5',
-    title: 'Akıllı Ev Otomasyonu',
-    description: 'IoT tabanlı ev otomasyon sistemi',
-    status: 'yapilacak' as TaskStatus,
-    progress: 15,
-    tasks: 18,
-    members: 7,
-    startDate: '2024-03-01',
-    endDate: '2024-09-30',
-    team: [
-      { id: '1', name: 'Emre Yıldırım', role: 'Proje Yöneticisi', department: 'Yönetim' },
-      { id: '2', name: 'Selin Arslan', role: 'IoT Uzmanı', department: 'IoT' },
-      { id: '3', name: 'Burak Aydın', role: 'Mobil Geliştirici', department: 'Yazılım' },
-      { id: '4', name: 'Deniz Şahin', role: 'Backend Geliştirici', department: 'Yazılım' },
-      { id: '5', name: 'Elif Demir', role: 'UI/UX Tasarımcı', department: 'Tasarım' },
-      { id: '6', name: 'Onur Kaya', role: 'Elektronik Mühendisi', department: 'Donanım' },
-      { id: '7', name: 'Merve Çelik', role: 'Test Mühendisi', department: 'Test' },
-    ],
-    recentTasks: [
-      { id: '1', title: 'Sistem mimarisi tasarımı', status: 'devam', assignedTo: '2', progress: 40 },
-      { id: '2', title: 'Sensör entegrasyonu', status: 'beklemede', assignedTo: '6', progress: 0 },
-      { id: '3', title: 'Mobil uygulama arayüzü', status: 'devam', assignedTo: '5', progress: 25 },
-    ],
-  },
-  {
-    id: '6',
-    title: 'Online Eğitim Platformu',
-    description: 'Uzaktan eğitim ve kurs yönetim sistemi',
-    status: 'devam' as TaskStatus,
-    progress: 45,
-    tasks: 16,
-    members: 6,
-    startDate: '2024-02-15',
-    endDate: '2024-07-30',
-    team: [
-      { id: '1', name: 'Canan Yılmaz', role: 'Proje Yöneticisi', department: 'Yönetim' },
-      { id: '2', name: 'Serkan Demir', role: 'Frontend Geliştirici', department: 'Yazılım' },
-      { id: '3', name: 'Aylin Kaya', role: 'Backend Geliştirici', department: 'Yazılım' },
-      { id: '4', name: 'Tolga Şahin', role: 'UI/UX Tasarımcı', department: 'Tasarım' },
-      { id: '5', name: 'Pınar Arslan', role: 'İçerik Yöneticisi', department: 'İçerik' },
-      { id: '6', name: 'Mert Özkan', role: 'Test Mühendisi', department: 'Test' },
-    ],
-    recentTasks: [
-      { id: '1', title: 'Video streaming altyapısı', status: 'devam', assignedTo: '3', progress: 60 },
-      { id: '2', title: 'Kullanıcı dashboard tasarımı', status: 'tamamlandi', assignedTo: '4', progress: 100 },
-      { id: '3', title: 'Ödeme sistemi entegrasyonu', status: 'beklemede', assignedTo: '2', progress: 0 },
-    ],
-  },
-  {
-    id: '7',
-    title: 'Sağlık Takip Uygulaması',
-    description: 'Kişisel sağlık ve fitness takip sistemi',
-    status: 'test' as TaskStatus,
-    progress: 75,
-    tasks: 14,
-    members: 5,
-    startDate: '2024-01-01',
-    endDate: '2024-05-30',
-    team: [
-      { id: '1', name: 'Berk Yıldız', role: 'Proje Yöneticisi', department: 'Yönetim' },
-      { id: '2', name: 'Gamze Demir', role: 'Mobil Geliştirici', department: 'Yazılım' },
-      { id: '3', name: 'Ozan Kaya', role: 'Backend Geliştirici', department: 'Yazılım' },
-      { id: '4', name: 'İrem Şahin', role: 'UI/UX Tasarımcı', department: 'Tasarım' },
-      { id: '5', name: 'Kemal Çelik', role: 'Sağlık Danışmanı', department: 'Sağlık' },
-    ],
-    recentTasks: [
-      { id: '1', title: 'Fitness tracker entegrasyonu', status: 'tamamlandi', assignedTo: '2', progress: 100 },
-      { id: '2', title: 'Sağlık raporu oluşturma', status: 'devam', assignedTo: '3', progress: 80 },
-      { id: '3', title: 'Kullanıcı testleri', status: 'devam', assignedTo: '5', progress: 50 },
-    ],
-  },
-];
-
 const HomeScreen = ({ navigation }: Props) => {
-  const [selectedStatus, setSelectedStatus] = useState<TaskStatus>('yapilacak');
+  const { projects, moveProjectToNextStage, moveProjectToPreviousStage } = useProjects();
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<TaskStatus | 'all'>('all');
   const theme = useTheme() as CustomTheme;
 
+  // Simulate loading
+  useEffect(() => {
+    setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+  }, []);
+  
+  // Durum renklerini belirle
   const getStatusColor = (status: TaskStatus) => {
     switch (status) {
       case 'yapilacak':
-        return theme.colors.primary;
+        return '#f59e0b'; // amber
       case 'devam':
-        return theme.colors.secondary;
+        return '#3b82f6'; // blue
       case 'test':
-        return theme.colors.tertiary;
+        return '#8b5cf6'; // violet
       case 'tamamlanan':
-        return theme.colors.primary;
+        return '#10b981'; // emerald
       default:
-        return theme.colors.primary;
+        return '#6b7280'; // gray
     }
   };
 
-  const statusItems: { id: TaskStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { id: 'yapilacak', label: 'Yapılacak', icon: 'time-outline' },
-    { id: 'devam', label: 'Devam Ediyor', icon: 'play-outline' },
-    { id: 'test', label: 'Test Edilecek', icon: 'checkmark-circle-outline' },
-    { id: 'tamamlanan', label: 'Tamamlanan', icon: 'checkmark-done-circle-outline' },
-  ];
+  // Durum metinlerini belirle
+  const getStatusText = (status: TaskStatus) => {
+    switch (status) {
+      case 'yapilacak':
+        return 'Yapılacak';
+      case 'devam':
+        return 'Devam Ediyor';
+      case 'test':
+        return 'Test';
+      case 'tamamlanan':
+        return 'Tamamlandı';
+      default:
+        return '';
+    }
+  };
 
   // Projeyi bir sonraki aşamaya taşıma fonksiyonu
   const moveToNextStage = (projectId: string) => {
-    const projectIndex = sampleProjects.findIndex(p => p.id === projectId);
-    if (projectIndex === -1) return;
-
-    const project = sampleProjects[projectIndex];
-    let nextStatus: TaskStatus;
-
-    // Mevcut duruma göre bir sonraki durumu belirle
-    switch (project.status) {
-      case 'yapilacak':
-        nextStatus = 'devam';
-        break;
-      case 'devam':
-        nextStatus = 'test';
-        break;
-      case 'test':
-        nextStatus = 'tamamlanan';
-        break;
-      default:
-        return;
-    }
-
-    // Projeyi güncelle
-    const updatedProjects = [...sampleProjects];
-    updatedProjects[projectIndex] = {
-      ...project,
-      status: nextStatus,
-    };
-
-    // State'i güncelle
-    setSelectedStatus(nextStatus);
+    moveProjectToNextStage(projectId);
   };
 
   // Projeyi bir önceki aşamaya taşıma fonksiyonu
   const moveToPreviousStage = (projectId: string) => {
-    const projectIndex = sampleProjects.findIndex(p => p.id === projectId);
-    if (projectIndex === -1) return;
-
-    const project = sampleProjects[projectIndex];
-    let previousStatus: TaskStatus;
-
-    // Mevcut duruma göre bir önceki durumu belirle
-    switch (project.status) {
-      case 'tamamlanan':
-        previousStatus = 'test';
-        break;
-      case 'test':
-        previousStatus = 'devam';
-        break;
-      case 'devam':
-        previousStatus = 'yapilacak';
-        break;
-      default:
-        return;
-    }
-
-    // Projeyi güncelle
-    const updatedProjects = [...sampleProjects];
-    updatedProjects[projectIndex] = {
-      ...project,
-      status: previousStatus,
-    };
-
-    // State'i güncelle
-    setSelectedStatus(previousStatus);
+    moveProjectToPreviousStage(projectId);
   };
 
   // Bir sonraki aşama butonunun metnini belirle
   const getNextStageButtonText = (status: TaskStatus) => {
     switch (status) {
       case 'yapilacak':
-        return 'Devam Et';
+        return 'Başlat';
       case 'devam':
-        return 'Test Et';
+        return 'Teste Gönder';
       case 'test':
         return 'Tamamla';
+      case 'tamamlanan':
+        return '';
       default:
         return '';
     }
@@ -310,200 +98,339 @@ const HomeScreen = ({ navigation }: Props) => {
   // Bir önceki aşama butonunun metnini belirle
   const getPreviousStageButtonText = (status: TaskStatus) => {
     switch (status) {
-      case 'tamamlanan':
-        return 'Test Et';
-      case 'test':
-        return 'Devam Et';
+      case 'yapilacak':
+        return '';
       case 'devam':
-        return 'Yapılacak';
+        return 'Planlama';
+      case 'test':
+        return 'Geliştirme';
+      case 'tamamlanan':
+        return 'Teste Geri Gönder';
       default:
         return '';
     }
   };
 
-  const filteredProjects = sampleProjects.filter(project => project.status === selectedStatus);
-
+  // Yeni proje ekranına git
   const handleNewProject = () => {
     navigation.navigate('NewProject');
   };
 
+  // Filtrelenmiş projeleri al
+  const getFilteredProjects = () => {
+    if (selectedStatus === 'all') {
+      return projects;
+    }
+    return projects.filter(project => project.status === selectedStatus);
+  };
+
+  // Ekranı yenile
+  const onRefresh = () => {
+    setRefreshing(true);
+    // Gerçek bir uygulamada burada API çağrısı yapılabilir
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
-      <StatusBar style={theme.colors.text === '#000000' ? 'dark' : 'light'} />
+      <StatusBar style={theme.dark ? 'light' : 'dark'} />
+
       <View style={styles.container}>
-        <View style={[styles.header, { 
-          backgroundColor: theme.colors.surface,
-          borderBottomColor: theme.colors.border 
-        }]}>
-          <TouchableOpacity
-            style={styles.menuButton}
-            onPress={() => navigation.openDrawer()}
-          >
-            <Ionicons name="menu-outline" size={28} color={theme.colors.text} />
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            <Text style={[styles.title, { color: theme.colors.text }]}>Projelerim</Text>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <Text style={[styles.loadingText, { color: theme.colors.onBackground }]}>
+              Projeler yükleniyor...
+            </Text>
           </View>
-        </View>
-
-        <View style={[styles.statusContainer, { 
-          backgroundColor: theme.colors.surface,
-          borderBottomColor: theme.colors.border 
-        }]}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.statusBar}
-          >
-            {(['yapilacak', 'devam', 'test', 'tamamlanan'] as TaskStatus[]).map((status) => (
-              <TouchableOpacity
-                key={status}
-                style={[
-                  styles.statusItem,
-                  { backgroundColor: theme.colors.surface },
-                  selectedStatus === status && { backgroundColor: theme.colors.primary }
-                ]}
-                onPress={() => setSelectedStatus(status)}
+        ) : (
+          <>
+            <View style={[styles.header, { borderBottomColor: theme.colors.outline }]}>
+              <TouchableOpacity 
+                style={styles.menuButton}
+                onPress={() => navigation.openDrawer()}
               >
-                <View style={[
-                  styles.iconContainer,
-                  { backgroundColor: theme.colors.background },
-                  selectedStatus === status && { backgroundColor: 'rgba(255, 255, 255, 0.2)' }
-                ]}>
-                  <Ionicons
-                    name={
-                      status === 'yapilacak'
-                        ? 'list-outline'
-                        : status === 'devam'
-                        ? 'time-outline'
-                        : status === 'test'
-                        ? 'flask-outline'
-                        : 'checkmark-circle-outline'
-                    }
-                    size={18}
-                    color={selectedStatus === status ? theme.colors.onPrimary : theme.colors.text}
-                  />
-                </View>
-                <Text style={[
-                  styles.statusText,
-                  { color: theme.colors.text },
-                  selectedStatus === status && { color: theme.colors.onPrimary }
-                ]}>
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
-                </Text>
+                <Ionicons name="menu-outline" size={28} color={theme.colors.onBackground} />
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        <ScrollView style={styles.contentContainer}>
-          <Text style={[styles.contentTitle, { color: theme.colors.text }]}>
-            {selectedStatus.charAt(0).toUpperCase() + selectedStatus.slice(1)} Projeler
-          </Text>
-          {sampleProjects.filter(project => project.status === selectedStatus).length > 0 ? (
-            sampleProjects
-              .filter(project => project.status === selectedStatus)
-              .map(project => (
-                <View key={project.id} style={[styles.projectCard, { 
-                  backgroundColor: theme.colors.surface,
-                  shadowColor: theme.colors.shadow
-                }]}>
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate('ProjectDetail', { projectId: project.id })}
-                  >
-                    <View style={styles.projectHeader}>
-                      <Text style={[styles.projectTitle, { color: theme.colors.text }]}>
-                        {project.title}
-                      </Text>
-                      <View style={[styles.statusBadge, { backgroundColor: getStatusColor(project.status) }]}>
-                        <Text style={[styles.statusBadgeText, { color: theme.colors.onPrimary }]}>
-                          {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={[styles.projectDescription, { color: theme.colors.text + '99' }]}>
-                      {project.description}
-                    </Text>
-                    <View style={styles.projectFooter}>
-                      <Text style={[styles.progressText, { color: theme.colors.text + '99' }]}>
-                        İlerleme ({project.progress}%)
-                      </Text>
-                      <View style={[styles.progressContainer, { backgroundColor: theme.colors.border }]}>
-                        <View
-                          style={[
-                            styles.progressBar,
-                            { backgroundColor: getStatusColor(project.status), width: `${project.progress}%` }
-                          ]}
-                        />
-                      </View>
-                      <View style={styles.projectStats}>
-                        <View style={styles.statItem}>
-                          <Ionicons name="list-outline" size={16} color={theme.colors.text + '99'} />
-                          <Text style={[styles.statText, { color: theme.colors.text + '99' }]}>
-                            {project.tasks} Görev
-                          </Text>
-                        </View>
-                        <View style={styles.statItem}>
-                          <Ionicons name="people-outline" size={16} color={theme.colors.text + '99'} />
-                          <Text style={[styles.statText, { color: theme.colors.text + '99' }]}>
-                            {project.members} Üye
-                          </Text>
-                        </View>
-                        <View style={styles.statItem}>
-                          <Ionicons name="calendar-outline" size={16} color={theme.colors.text + '99'} />
-                          <Text style={[styles.statText, { color: theme.colors.text + '99' }]}>
-                            {project.endDate}
-                          </Text>
-                        </View>
-                      </View>
-                      <View style={styles.navigationButtonsContainer}>
-                        {project.status !== 'yapilacak' && (
-                          <Button
-                            mode="outlined"
-                            style={[styles.navigationButton, { borderColor: theme.colors.primary }]}
-                            contentStyle={styles.navigationButtonContent}
-                            textColor={theme.colors.primary}
-                            onPress={() => moveToPreviousStage(project.id)}
-                          >
-                            {getPreviousStageButtonText(project.status)}
-                          </Button>
-                        )}
-                        {project.status !== 'tamamlanan' && (
-                          <Button
-                            mode="contained"
-                            style={[styles.navigationButton, { backgroundColor: theme.colors.secondary }]}
-                            contentStyle={styles.navigationButtonContent}
-                            onPress={() => moveToNextStage(project.id)}
-                          >
-                            {getNextStageButtonText(project.status)}
-                          </Button>
-                        )}
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              ))
-          ) : (
-            <View style={styles.emptyState}>
-              <Ionicons name="list-outline" size={48} color={theme.colors.text + '33'} />
-              <Text style={[styles.emptyStateText, { color: theme.colors.text + '66' }]}>
-                Bu kategoride proje bulunmuyor
-              </Text>
+              <View style={styles.headerContent}>
+                <Text style={[styles.title, { color: theme.colors.onBackground }]}>Projelerim</Text>
+              </View>
             </View>
-          )}
-        </ScrollView>
-        <FAB
-          icon="plus"
-          style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-          onPress={handleNewProject}
-          color={theme.colors.onPrimary}
-        />
+
+            <View style={[styles.statusContainer, { borderBottomColor: theme.colors.outline }]}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.statusBar}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.statusItem,
+                    selectedStatus === 'all' && { backgroundColor: theme.colors.primary + '20' }
+                  ]}
+                  onPress={() => setSelectedStatus('all')}
+                >
+                  <View style={[
+                    styles.iconContainer, 
+                    { backgroundColor: theme.colors.primary }
+                  ]}>
+                    <Ionicons name="layers-outline" size={18} color="#fff" />
+                  </View>
+                  <Text style={[
+                    styles.statusText, 
+                    { color: selectedStatus === 'all' ? theme.colors.primary : theme.colors.onBackground }
+                  ]}>
+                    Tümü
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.statusItem,
+                    selectedStatus === 'yapilacak' && { backgroundColor: getStatusColor('yapilacak') + '20' }
+                  ]}
+                  onPress={() => setSelectedStatus('yapilacak')}
+                >
+                  <View style={[
+                    styles.iconContainer, 
+                    { backgroundColor: getStatusColor('yapilacak') }
+                  ]}>
+                    <Ionicons name="time-outline" size={18} color="#fff" />
+                  </View>
+                  <Text style={[
+                    styles.statusText, 
+                    { color: selectedStatus === 'yapilacak' ? getStatusColor('yapilacak') : theme.colors.onBackground }
+                  ]}>
+                    Yapılacak
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.statusItem,
+                    selectedStatus === 'devam' && { backgroundColor: getStatusColor('devam') + '20' }
+                  ]}
+                  onPress={() => setSelectedStatus('devam')}
+                >
+                  <View style={[
+                    styles.iconContainer, 
+                    { backgroundColor: getStatusColor('devam') }
+                  ]}>
+                    <Ionicons name="reload-outline" size={18} color="#fff" />
+                  </View>
+                  <Text style={[
+                    styles.statusText, 
+                    { color: selectedStatus === 'devam' ? getStatusColor('devam') : theme.colors.onBackground }
+                  ]}>
+                    Devam Ediyor
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.statusItem,
+                    selectedStatus === 'test' && { backgroundColor: getStatusColor('test') + '20' }
+                  ]}
+                  onPress={() => setSelectedStatus('test')}
+                >
+                  <View style={[
+                    styles.iconContainer, 
+                    { backgroundColor: getStatusColor('test') }
+                  ]}>
+                    <Ionicons name="flask-outline" size={18} color="#fff" />
+                  </View>
+                  <Text style={[
+                    styles.statusText, 
+                    { color: selectedStatus === 'test' ? getStatusColor('test') : theme.colors.onBackground }
+                  ]}>
+                    Test
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.statusItem,
+                    selectedStatus === 'tamamlanan' && { backgroundColor: getStatusColor('tamamlanan') + '20' }
+                  ]}
+                  onPress={() => setSelectedStatus('tamamlanan')}
+                >
+                  <View style={[
+                    styles.iconContainer, 
+                    { backgroundColor: getStatusColor('tamamlanan') }
+                  ]}>
+                    <Ionicons name="checkmark-outline" size={18} color="#fff" />
+                  </View>
+                  <Text style={[
+                    styles.statusText, 
+                    { color: selectedStatus === 'tamamlanan' ? getStatusColor('tamamlanan') : theme.colors.onBackground }
+                  ]}>
+                    Tamamlandı
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+
+            <ScrollView 
+              style={styles.contentContainer}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={[theme.colors.primary]}
+                  tintColor={theme.colors.primary}
+                />
+              }
+            >
+              <Text style={[styles.contentTitle, { color: theme.colors.onBackground }]}>
+                {selectedStatus === 'all' ? 'Tüm Projeler' : getStatusText(selectedStatus)}
+              </Text>
+
+              {getFilteredProjects().length > 0 ? (
+                getFilteredProjects().map(project => (
+                  <View key={project.id}>
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() => navigation.navigate('ProjectDetail', { projectId: project.id })}
+                    >
+                      <View style={[
+                        styles.projectCard, 
+                        { backgroundColor: theme.colors.surface }
+                      ]}>
+                        <View style={styles.projectHeader}>
+                          <Text style={[styles.projectTitle, { color: theme.colors.onSurface }]}>
+                            {project.title}
+                          </Text>
+                          <View style={[
+                            styles.statusBadge, 
+                            { backgroundColor: getStatusColor(project.status) + '20' }
+                          ]}>
+                            <Text style={[
+                              styles.statusBadgeText, 
+                              { color: getStatusColor(project.status) }
+                            ]}>
+                              {getStatusText(project.status)}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <Text style={[
+                          styles.projectDescription, 
+                          { color: theme.colors.onSurfaceVariant }
+                        ]}>
+                          {project.description}
+                        </Text>
+
+                        <View style={styles.projectFooter}>
+                          <View style={[
+                            styles.progressContainer, 
+                            { backgroundColor: theme.colors.surfaceVariant }
+                          ]}>
+                            <View 
+                              style={[
+                                styles.progressBar, 
+                                { 
+                                  backgroundColor: getStatusColor(project.status),
+                                  width: `${project.progress}%`
+                                }
+                              ]} 
+                            />
+                          </View>
+
+                          <Text style={[
+                            styles.progressText, 
+                            { color: theme.colors.onSurfaceVariant }
+                          ]}>
+                            İlerleme: {project.progress}%
+                          </Text>
+
+                          <View style={styles.projectStats}>
+                            <View style={styles.statItem}>
+                              <Ionicons name="list-outline" size={16} color={theme.colors.onSurfaceVariant} />
+                              <Text style={[styles.statText, { color: theme.colors.onSurfaceVariant }]}>
+                                {project.tasks} Görev
+                              </Text>
+                            </View>
+
+                            <View style={styles.statItem}>
+                              <Ionicons name="people-outline" size={16} color={theme.colors.onSurfaceVariant} />
+                              <Text style={[styles.statText, { color: theme.colors.onSurfaceVariant }]}>
+                                {project.members} Üye
+                              </Text>
+                            </View>
+
+                            <View style={styles.statItem}>
+                              <Ionicons name="calendar-outline" size={16} color={theme.colors.onSurfaceVariant} />
+                              <Text style={[styles.statText, { color: theme.colors.onSurfaceVariant }]}>
+                                {project.endDate}
+                              </Text>
+                            </View>
+                          </View>
+
+                          <View style={styles.navigationButtonsContainer}>
+                            {project.status !== 'yapilacak' && (
+                              <Button 
+                                mode="outlined"
+                                style={[styles.navigationButton, { borderColor: theme.colors.outline }]}
+                                contentStyle={styles.navigationButtonContent}
+                                onPress={() => moveToPreviousStage(project.id)}
+                              >
+                                {getPreviousStageButtonText(project.status)}
+                              </Button>
+                            )}
+                            
+                            {project.status !== 'tamamlanan' && (
+                              <Button 
+                                mode="contained"
+                                style={[styles.navigationButton, { backgroundColor: theme.colors.secondary }]}
+                                contentStyle={styles.navigationButtonContent}
+                                onPress={() => moveToNextStage(project.id)}
+                              >
+                                {getNextStageButtonText(project.status)}
+                              </Button>
+                            )}
+                          </View>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyState}>
+                  <Ionicons name="list-outline" size={48} color={theme.colors.text + '33'} />
+                  <Text style={[styles.emptyStateText, { color: theme.colors.text + '66' }]}>
+                    Bu kategoride proje bulunmuyor
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+
+            <FAB
+              icon="plus"
+              style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+              onPress={handleNewProject}
+              color={theme.colors.onPrimary}
+            />
+          </>
+        )}
       </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '500',
+  },
   safeArea: {
     flex: 1,
     paddingTop: 20,
@@ -653,7 +580,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginHorizontal: 4,
   },
-  // nextButton stil kaldırıldı - tema rengi doğrudan kullanılıyor
   navigationButtonContent: {
     paddingVertical: 6,
   },

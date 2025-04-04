@@ -4,46 +4,36 @@ import { StatusBar } from 'expo-status-bar';
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerStackParamList } from '../../navigation/types';
-import { sampleProjects } from '../home/HomeScreen';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { TeamMember, Task } from '../../types/project';
 import { useTheme } from 'react-native-paper';
 import { CustomTheme } from '../../theme';
+import { useProjects } from '../../context/ProjectContext';
 
-type Props = DrawerScreenProps<DrawerStackParamList, 'EditProject'>;
+type Props = DrawerScreenProps<DrawerStackParamList, 'EditProject'> & {
+  route: {
+    params: {
+      projectId: string;
+    };
+  };
+};
 
 const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
   const theme = useTheme() as CustomTheme;
   const { projectId } = route.params;
-  const project = sampleProjects.find(p => p.id === projectId);
-  const [projectTitle, setProjectTitle] = useState(project?.title || 'Proje Adı');
-  const [projectDescription, setProjectDescription] = useState(project?.description || 'Proje açıklaması buraya gelecek...');
-  const [startDate, setStartDate] = useState(new Date(project?.startDate || Date.now()));
-  const [endDate, setEndDate] = useState(new Date(project?.endDate || Date.now()));
+  const { projects, updateProject } = useProjects();
+  const [loading, setLoading] = useState(true);
+  const [projectTitle, setProjectTitle] = useState('');
+  const [projectDescription, setProjectDescription] = useState('');
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date());
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
-  
-  // Ekip üyeleri için state'ler
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(
-    project?.team?.map(member => ({
-      ...member,
-      department: member.department || 'Genel'
-    })) || []
-  );
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberRole, setNewMemberRole] = useState('');
-
-  // Görevler için state'ler
-  const [tasks, setTasks] = useState<Task[]>(project?.recentTasks?.map(task => ({
-    id: task.id,
-    title: task.title,
-    assignee: task.assignedTo,
-    startDate: new Date(),
-    dueDate: new Date(),
-    status: 'yapilacak',
-    progress: 0
-  })) || []);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskAssignee, setNewTaskAssignee] = useState<string | null>(null);
@@ -52,6 +42,78 @@ const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
   const [showTaskStartDatePicker, setShowTaskStartDatePicker] = useState(false);
   const [showTaskDueDatePicker, setShowTaskDueDatePicker] = useState(false);
 
+  React.useEffect(() => {
+    if (projects !== undefined) {
+      const project = projects.find(p => p.id === projectId);
+      if (project) {
+        setProjectTitle(project.title);
+        setProjectDescription(project.description);
+        setStartDate(new Date(project.startDate));
+        setEndDate(new Date(project.endDate));
+        setTeamMembers(project.team?.map(member => ({
+          ...member,
+          department: member.department || 'Genel'
+        })) || []);
+        setTasks(project.recentTasks?.map(task => ({
+          id: task.id,
+          title: task.title,
+          assignee: task.assignedTo,
+          startDate: new Date(),
+          dueDate: new Date(),
+          status: 'yapilacak',
+          progress: 0
+        })) || []);
+      }
+      setLoading(false);
+    }
+  }, [projects, projectId]);
+
+  // Show loading state if projects is undefined
+  if (projects === undefined || loading) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+        <StatusBar style={theme.colors.text === '#000000' ? 'dark' : 'light'} />
+        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+          <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Proje Düzenle</Text>
+          </View>
+          <View style={styles.loadingContainer}>
+            <Text style={[styles.loadingText, { color: theme.colors.text }]}>Yükleniyor...</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const project = projects.find(p => p.id === projectId);
+
+  if (!project) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+        <StatusBar style={theme.colors.text === '#000000' ? 'dark' : 'light'} />
+        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+          <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Proje Düzenle</Text>
+          </View>
+          <View style={styles.errorContainer}>
+            <Text style={[styles.errorText, { color: theme.colors.text }]}>Proje bulunamadı</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
   const handleStartDateChange = (event: any, selectedDate?: Date) => {
     setShowStartDatePicker(false);
     if (selectedDate) {
@@ -164,40 +226,70 @@ const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
   }
 
   const handleSave = () => {
-    if (project) {
-      // Proje detaylarını güncelle
-      project.title = projectTitle;
-      project.description = projectDescription;
-      project.startDate = startDate.toISOString();
-      project.endDate = endDate.toISOString();
-      
-      // Ekip güncellemeleri
-      project.team = teamMembers;
-      project.members = teamMembers.length;
-      
-      // Proje durumunu güncelle
-      const today = new Date();
-      if (today < startDate) {
-        project.status = 'yapilacak' as 'yapilacak' | 'devam' | 'test' | 'tamamlanan';
-      } else if (today >= startDate && today <= endDate) {
-        project.status = 'devam' as 'yapilacak' | 'devam' | 'test' | 'tamamlanan';
-      } else {
-        project.status = 'tamamlanan' as 'yapilacak' | 'devam' | 'test' | 'tamamlanan';
-      }
-
-      // Proje ilerleme durumunu güncelle
-      if (project.status === 'tamamlanan') {
-        project.progress = 100;
-      } else if (project.status === 'devam') {
-        const totalDuration = endDate.getTime() - startDate.getTime();
-        const elapsedDuration = today.getTime() - startDate.getTime();
-        project.progress = Math.min(Math.round((elapsedDuration / totalDuration) * 100), 100);
-      } else {
-        project.progress = 0;
-      }
+    if (!project) {
+      return;
     }
-    
-    navigation.goBack();
+
+    if (!projectTitle.trim()) {
+      Alert.alert('Hata', 'Lütfen proje başlığı girin');
+      return;
+    }
+
+    if (!projectDescription.trim()) {
+      Alert.alert('Hata', 'Lütfen proje açıklaması girin');
+      return;
+    }
+
+    if (startDate > endDate) {
+      Alert.alert('Hata', 'Başlangıç tarihi bitiş tarihinden sonra olamaz');
+      return;
+    }
+
+    // Proje durumunu güncelle
+    const today = new Date();
+    let status: 'yapilacak' | 'devam' | 'test' | 'tamamlanan' = project.status;
+
+    if (today < startDate) {
+      status = 'yapilacak';
+    } else if (today >= startDate && today <= endDate) {
+      status = 'devam';
+    } else {
+      status = 'tamamlanan';
+    }
+
+    // Proje ilerleme durumunu güncelle
+    let progress = 0;
+    if (status === 'tamamlanan') {
+      progress = 100;
+    } else if (status === 'devam') {
+      const totalDuration = endDate.getTime() - startDate.getTime();
+      const elapsedDuration = today.getTime() - startDate.getTime();
+      progress = Math.min(Math.round((elapsedDuration / totalDuration) * 100), 100);
+    }
+
+    const updatedProject = {
+      ...project,
+      title: projectTitle.trim(),
+      description: projectDescription.trim(),
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      team: teamMembers,
+      members: teamMembers.length,
+      status,
+      progress,
+      recentTasks: tasks
+    };
+
+    updateProject(updatedProject);
+    Alert.alert(
+      'Başarılı',
+      'Değişiklikler kaydedildi',
+      [{
+        text: 'Tamam',
+        onPress: () => navigation.navigate('ProjectDetail', { projectId: project.id })
+      }],
+      { cancelable: false }
+    );
   };
 
   return (
@@ -604,6 +696,16 @@ const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    textAlign: 'center',
+  },
   safeArea: {
     flex: 1,
   },

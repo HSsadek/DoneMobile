@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import DrawerNavigator from './src/navigation/DrawerNavigator';
 import { lightTheme, darkTheme } from './src/theme';
 import { MD3Theme } from 'react-native-paper/lib/typescript/types';
+import { ProjectProvider } from './src/context/ProjectContext';
 
 export type ThemeType = 'light' | 'dark';
 
@@ -44,9 +45,11 @@ export default function App() {
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
       <PaperProvider theme={theme === 'light' ? lightTheme as MD3Theme : darkTheme as MD3Theme}>
-        <NavigationContainer>
-          <DrawerNavigator />
-        </NavigationContainer>
+        <ProjectProvider>
+          <NavigationContainer>
+            <DrawerNavigator />
+          </NavigationContainer>
+        </ProjectProvider>
       </PaperProvider>
     </ThemeContext.Provider>
   );

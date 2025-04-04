@@ -1,4 +1,5 @@
-import { NavigatorScreenParams } from '@react-navigation/native';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
+import { ParamListBase, RouteProp } from '@react-navigation/native';
 
 export type DrawerStackParamList = {
   Home: undefined;
@@ -19,12 +20,6 @@ export type RootStackParamList = {
 };
 
 export type DrawerScreenProps<T extends keyof DrawerStackParamList> = {
-  navigation: {
-    navigate: (screen: keyof DrawerStackParamList, params?: any) => void;
-    goBack: () => void;
-    reset: (state: any) => void;
-  };
-  route: {
-    params: DrawerStackParamList[T];
-  };
-}; 
+  navigation: DrawerNavigationProp<DrawerStackParamList, T>;
+  route: RouteProp<DrawerStackParamList, T>;
+};

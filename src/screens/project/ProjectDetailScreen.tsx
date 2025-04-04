@@ -4,19 +4,76 @@ import { StatusBar } from 'expo-status-bar';
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerStackParamList } from '../../navigation/types';
-import { sampleProjects } from '../home/HomeScreen';
 import KanbanBoard from '../../components/KanbanBoard';
 import { useTheme } from 'react-native-paper';
 import { CustomTheme } from '../../theme';
 import { Task, TeamMember, TaskStatus } from '../../types/project';
+import { useProjects } from '../../context/ProjectContext';
 
-type Props = DrawerScreenProps<DrawerStackParamList, 'ProjectDetail'>;
+type Props = DrawerScreenProps<DrawerStackParamList, 'ProjectDetail'> & {
+  route: {
+    params: {
+      projectId: string;
+    };
+  };
+};
 
 const ProjectDetailScreen = ({ navigation, route }: Props) => {
   const theme = useTheme() as CustomTheme;
   const { projectId } = route.params;
-  const project = sampleProjects.find(p => p.id === projectId);
+  const { projects } = useProjects();
   const [viewMode, setViewMode] = useState<'details' | 'kanban'>('details');
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    if (projects !== undefined) {
+      // Data is available, no need to wait
+      setLoading(false);
+    } else {
+      // Add a small delay to prevent flash
+      const timer = setTimeout(() => {
+        setLoading(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [projects]);
+
+  // If projects is undefined, show loading
+  if (projects === undefined || loading) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+        <StatusBar style={theme.colors.text === '#000000' ? 'dark' : 'light'} />
+        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+          <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Proje Detayları</Text>
+            {projectId && (
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => navigation.navigate('EditProject', { projectId })}
+              >
+                <View style={styles.editButtonContent}>
+                  <Ionicons name="pencil-outline" size={20} color={theme.colors.primary} />
+                  <Text style={[styles.editButtonText, { color: theme.colors.primary }]}>Düzenle</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          </View>
+          <View style={styles.loadingContainer}>
+            <Text style={[styles.loadingText, { color: theme.colors.text }]}>Yükleniyor...</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Find project after we know projects is defined
+  const project = projects.find(p => p.id === projectId);
 
   if (!project) {
     return (
@@ -31,6 +88,17 @@ const ProjectDetailScreen = ({ navigation, route }: Props) => {
               <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
             </TouchableOpacity>
             <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Proje Detayları</Text>
+            {projectId && (
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => navigation.navigate('EditProject', { projectId })}
+              >
+                <View style={styles.editButtonContent}>
+                  <Ionicons name="pencil-outline" size={20} color={theme.colors.primary} />
+                  <Text style={[styles.editButtonText, { color: theme.colors.primary }]}>Düzenle</Text>
+                </View>
+              </TouchableOpacity>
+            )}
           </View>
           <View style={styles.errorContainer}>
             <Text style={[styles.errorText, { color: theme.colors.text }]}>Proje bulunamadı</Text>
@@ -281,6 +349,16 @@ const ProjectDetailScreen = ({ navigation, route }: Props) => {
 };
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    textAlign: 'center',
+  },
   safeArea: {
     flex: 1,
   },
