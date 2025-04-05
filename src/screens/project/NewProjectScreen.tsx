@@ -372,8 +372,17 @@ const NewProjectScreen = ({ navigation }: Props) => {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
       <StatusBar style={theme.dark ? 'light' : 'dark'} />
-      <ScrollView style={styles.container}>
-        <View style={[styles.header, { borderBottomColor: theme.colors.outline }]}>
+      
+      {/* Sabit header */}
+      <Surface style={[styles.headerSurface, { 
+        backgroundColor: theme.colors.elevation.level2,
+        position: 'absolute',
+        top: insets.top + 10, // SafeArea bilgisini kullanarak üst kenardan uzaklığı ayarlıyoruz
+        left: 20,
+        right: 20,
+        zIndex: 10 // Header'ın içerik üzerinde görünmesini sağlıyor
+      }]}>
+        <View style={styles.headerContent}>
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => navigation.goBack()}
@@ -382,6 +391,12 @@ const NewProjectScreen = ({ navigation }: Props) => {
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.colors.onBackground }]}>Yeni Proje</Text>
         </View>
+      </Surface>
+      
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={{ paddingTop: 90 }} // Header için yer açıyoruz
+      >
 
         <View style={styles.content}>
           {/* Proje Bilgileri */}
@@ -752,25 +767,59 @@ const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
+  // Modernize edilmiş header stili
+  headerSurface: {
+    borderRadius: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  headerShadow: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 15,
+    backgroundColor: 'transparent',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    zIndex: 5,
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   backButton: {
     marginRight: 16,
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.03)',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 22,
+    fontWeight: '700',
   },
   content: {
-    padding: 16,
+    padding: 20,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 30,
+    backgroundColor: theme.colors.elevation.level1,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 1,
   },
   sectionTitleRow: {
     flexDirection: 'row',
@@ -788,10 +837,15 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontWeight: '500',
   },
   suggestionsContainer: {
-    marginBottom: 16,
-    padding: 12,
+    marginBottom: 20,
+    padding: 16,
     backgroundColor: theme.colors.primaryContainer,
-    borderRadius: 8,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   inputRow: {
     flexDirection: 'row',
@@ -802,11 +856,16 @@ const createStyles = (theme: any) => StyleSheet.create({
     gap: 12,
   },
   memberCard: {
-    backgroundColor: theme.colors.elevation.level1,
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: theme.colors.elevation.level0,
+    borderRadius: 16,
+    padding: 18,
     borderWidth: 1,
     borderColor: theme.colors.outline,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   memberInfo: {
     flexDirection: 'row',
@@ -861,15 +920,17 @@ const createStyles = (theme: any) => StyleSheet.create({
     marginLeft: 6,
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   label: {
     fontSize: 14,
+    fontWeight: '500',
     color: theme.colors.onSurfaceVariant,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: theme.colors.elevation.level1,
+    backgroundColor: theme.colors.elevation.level0,
+    borderRadius: 8,
   },
   textArea: {
     height: 100,
@@ -886,8 +947,8 @@ const createStyles = (theme: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: theme.colors.elevation.level1,
-    padding: 12,
+    backgroundColor: theme.colors.elevation.level0,
+    padding: 14,
     borderRadius: 8,
     borderWidth: 1,
   },
@@ -899,11 +960,16 @@ const createStyles = (theme: any) => StyleSheet.create({
     gap: 12,
   },
   taskCard: {
-    backgroundColor: theme.colors.elevation.level1,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: theme.colors.elevation.level0,
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 16,
     borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   taskInfo: {
     flexDirection: 'row',
@@ -955,14 +1021,17 @@ const createStyles = (theme: any) => StyleSheet.create({
   actions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 24,
-    gap: 12,
+    marginTop: 30,
+    marginBottom: 20,
+    gap: 16,
   },
   actionButton: {
     flex: 1,
+    borderRadius: 12,
   },
   actionButtonContent: {
-    paddingVertical: 6,
+    paddingVertical: 8,
+    height: 50,
   },
   emptyState: {
     alignItems: 'center',

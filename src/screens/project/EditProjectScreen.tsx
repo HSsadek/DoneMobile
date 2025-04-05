@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput, Platform, Modal, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput, Platform, Modal } from 'react-native';
+import { Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { DrawerScreenProps } from '@react-navigation/drawer';
+import { DrawerScreenProps, DrawerNavigationProp } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerStackParamList } from '../../navigation/types';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -231,17 +232,29 @@ const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
     }
 
     if (!projectTitle.trim()) {
-      Alert.alert('Hata', 'Lütfen proje başlığı girin');
+      // Using the consistent format for Alert
+      Alert.alert(
+        'Hata', 
+        'Lütfen proje başlığı girin'
+      );
       return;
     }
 
     if (!projectDescription.trim()) {
-      Alert.alert('Hata', 'Lütfen proje açıklaması girin');
+      // Using the consistent format for Alert
+      Alert.alert(
+        'Hata', 
+        'Lütfen proje açıklaması girin'
+      );
       return;
     }
 
     if (startDate > endDate) {
-      Alert.alert('Hata', 'Başlangıç tarihi bitiş tarihinden sonra olamaz');
+      // Using the consistent format for Alert
+      Alert.alert(
+        'Hata', 
+        'Başlangıç tarihi bitiş tarihinden sonra olamaz'
+      );
       return;
     }
 
@@ -267,6 +280,15 @@ const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
       progress = Math.min(Math.round((elapsedDuration / totalDuration) * 100), 100);
     }
 
+    // Task tipini Project.recentTasks için uygun formata dönüştürüyoruz
+    const formattedTasks = tasks.map(task => ({
+      id: task.id,
+      title: task.title,
+      status: task.status,
+      assignedTo: task.assignee || '',  // assignee alanını assignedTo'ya dönüştürüyoruz
+      progress: task.progress
+    }));
+
     const updatedProject = {
       ...project,
       title: projectTitle.trim(),
@@ -277,19 +299,15 @@ const EditProjectScreen: React.FC<Props> = ({ navigation, route }) => {
       members: teamMembers.length,
       status,
       progress,
-      recentTasks: tasks
+      recentTasks: formattedTasks
     };
 
-    updateProject(updatedProject);
-    Alert.alert(
-      'Başarılı',
-      'Değişiklikler kaydedildi',
-      [{
-        text: 'Tamam',
-        onPress: () => navigation.navigate('ProjectDetail', { projectId: project.id })
-      }],
-      { cancelable: false }
-    );
+    // Update the project - projectId ve güncelleme verisini ayrı argümanlar olarak gönderiyoruz
+    updateProject(projectId, updatedProject);
+    
+    // Projeye geri dön
+    navigation.navigate('ProjectDetail', { projectId });
+    
   };
 
   return (
