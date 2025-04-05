@@ -21,7 +21,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = () => {
-    // TODO: Implement login logic
+    // TODO: Implement login logic no thing
     navigation.replace('Main');
   };
 
